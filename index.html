@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanji Master N4 — Luyện Tập Kanji, Từ Vựng & Bộ Thủ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;900&family=Klee+One:wght@600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="brand" id="brandHomeBtn" title="Về trang tổng quan">
+          <div class="brand-badge">漢</div>
+          <div class="brand-text">
+            <h1>Kanji Master N4</h1>
+            <span>漢字マスター N4 • 209 Chữ</span>
+          </div>
+        </div>
+        <button class="icon-btn mobile-close-btn" id="closeSidebarBtn" aria-label="Đóng menu">✕</button>
+      </div>
+
+      <!-- Overall Progress Box -->
+      <div class="sidebar-progress-card">
+        <div class="sp-row">
+          <span class="sp-label">Tiến độ đã thuộc</span>
+          <strong class="sp-count" id="sidebarProgressText">0 / 209 chữ</strong>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="sidebarProgressBar" style="width: 0%"></div>
+        </div>
+        <div class="sp-stats">
+          <span id="sidebarStarredCount" title="Chữ đánh dấu cần chú ý">⭐ 0 đánh dấu</span>
+          <span id="sidebarMistakeCount" title="Chữ làm sai cần ôn">⚠️ 0 hay sai</span>
+        </div>
+      </div>
+
+      <!-- Quick Nav Buttons -->
+      <div class="sidebar-quick-nav">
+        <button class="nav-pill active" data-view="dashboard" id="navDashboardBtn">
+          <span>🗺️</span> Lộ trình & Chương
+        </button>
+        <button class="nav-pill" data-view="checkpoints" id="navCheckpointsBtn">
+          <span>🏆</span> Bài Test Tổng
+        </button>
+        <button class="nav-pill" data-view="notebook" id="navNotebookBtn">
+          <span>📒</span> Sổ tay ôn tập
+          <span class="badge-pill" id="notebookBadge" style="display:none">0</span>
+        </button>
+        <button class="nav-pill" data-view="dictionary" id="navDictionaryBtn">
+          <span>🔍</span> Tra cứu 209 chữ
+        </button>
+      </div>
+
+      <div class="sidebar-section-title">DANH SÁCH 9 CHƯƠNG</div>
+      <nav class="chapter-tree" id="chapterTree">
+        <!-- Populated by app.js -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="footer-btn" id="exportDataBtn" title="Sao lưu tiến độ học ra file JSON">💾 Sao lưu</button>
+        <label class="footer-btn" title="Khôi phục tiến độ từ file JSON">
+          📂 Khôi phục
+          <input type="file" id="importDataInput" accept=".json" hidden />
+        </label>
+        <button class="footer-btn" id="themeToggleBtn" title="Đổi giao diện Sáng/Tối">🌙</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-wrapper">
+      <!-- TOPBAR -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <button class="icon-btn mobile-menu-btn" id="openSidebarBtn" aria-label="Mở menu">☰</button>
+          <div class="breadcrumb" id="breadcrumb">
+            <span>Trang chủ</span>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="quick-search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="globalSearchInput"
+              placeholder="Tìm nhanh Kanji, Hán Việt, nghĩa, từ ghép..."
+              autocomplete="off"
+            />
+            <div class="search-dropdown" id="searchDropdown" style="display:none"></div>
+          </div>
+        </div>
+      </header>
+
+      <!-- DYNAMIC VIEW CONTAINER -->
+      <main class="main-content" id="mainContent">
+        <!-- Rendered dynamically by app.js -->
+      </main>
+    </div>
+  </div>
+
+  <!-- MODAL FOR ADDING CUSTOM WORD / NOTE -->
+  <div class="modal-backdrop" id="customNoteModal" style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modalTitle">Thêm từ ghép / Ghi chú cá nhân</h3>
+        <button class="icon-btn" id="closeModalBtn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Ghi chú / Mẹo nhớ riêng của bạn cho chữ <strong id="modalKanjiChar"></strong>:</label>
+          <textarea id="customNoteInput" rows="3" placeholder="VD: Chữ này hay nhầm với chữ 持 khi làm đề..."></textarea>
+        </div>
+        <hr class="divider" />
+        <h4>Thêm từ ghép N5/N4 mới vào chữ này</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Từ vựng (Kanji)</label>
+            <input type="text" id="customWordKanji" placeholder="VD: 家内" />
+          </div>
+          <div class="form-group">
+            <label>Cách đọc (Hiragana)</label>
+            <input type="text" id="customWordReading" placeholder="VD: かない" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Âm Hán Việt</label>
+            <input type="text" id="customWordHanViet" placeholder="VD: GIA NỘI" />
+          </div>
+          <div class="form-group">
+            <label>Cấp độ</label>
+            <select id="customWordLevel">
+              <option value="N4">N4</option>
+              <option value="N5">N5</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nghĩa tiếng Việt</label>
+          <input type="text" id="customWordMeaning" placeholder="VD: Vợ (của mình)" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="cancelModalBtn">Hủy</button>
+        <button class="btn btn-primary" id="saveModalBtn">Lưu lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DATA SCRIPTS -->
+  <script src="data/chapters_1_3.js"></script>
+  <script src="data/chapters_4_6.js"></script>
+  <script src="data/chapters_7_9.js"></script>
+  <!-- MAIN APP SCRIPT -->
+  <script src="app.js"></script>
+</body>
+</html>
