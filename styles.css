@@ -1920,13 +1920,15 @@ body {
   border-color: var(--primary);
 }
 
-.selector-chapter-top {
+.selector-chapter-top,
+.selector-chapter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 12px;
+  cursor: pointer;
 }
 
 .selector-lessons-grid {
@@ -1943,16 +1945,19 @@ body {
   transition: all 0.15s;
 }
 
-.selector-lesson-box.lesson-all-selected {
+.selector-lesson-box.lesson-all-selected,
+.selector-lesson-box.fully-selected {
   border-color: var(--primary);
   background: var(--primary-soft);
 }
 
-.selector-lesson-box.lesson-partial-selected {
+.selector-lesson-box.lesson-partial-selected,
+.selector-lesson-box.partially-selected {
   border-color: var(--accent-indigo);
 }
 
-.selector-lesson-head {
+.selector-lesson-head,
+.selector-lesson-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1988,24 +1993,75 @@ body {
   border-color: var(--primary);
 }
 
-.selectable-kanji-btn.picked {
+.selectable-kanji-btn.picked,
+.selectable-kanji-btn.selected {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
 }
 
-.selectable-kanji-btn .skb-char {
+.selectable-kanji-btn .skb-char,
+.selectable-kanji-btn .k-char {
   font-family: 'Noto Sans JP', sans-serif;
   font-size: 18px;
   font-weight: 800;
   line-height: 1.1;
 }
 
-.selectable-kanji-btn .skb-hv {
+.selectable-kanji-btn .skb-hv,
+.selectable-kanji-btn .k-hv {
   font-size: 9.5px;
   font-weight: 700;
   opacity: 0.88;
   margin-top: 2px;
+}
+
+.jlpt-hint-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  border: 1px dashed var(--accent-indigo);
+  background: var(--accent-indigo-soft);
+  color: var(--accent-indigo);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.jlpt-hint-btn:hover {
+  background: var(--accent-indigo);
+  color: #fff;
+}
+
+.jlpt-hint-btn.active {
+  background: var(--bg-subtle);
+  border-style: solid;
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.jlpt-hint-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 4px 11px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .jlpt-hint-badge {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+  border-color: rgba(245, 158, 11, 0.4);
 }
 
 .custom-launch-bar {

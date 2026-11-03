@@ -2358,7 +2358,8 @@
       allQuestions: examData.allQuestions,
       instantFeedback: false,
       submitted: false,
-      userAnswers: {}
+      userAnswers: {},
+      revealedHints: {}
     };
     currentView = "jlpt-exam";
     closeMobileSidebar();
@@ -2417,7 +2418,8 @@
       allQuestions: examData.allQuestions,
       instantFeedback: false,
       submitted: false,
-      userAnswers: {}
+      userAnswers: {},
+      revealedHints: {}
     };
     currentView = "jlpt-exam";
     closeMobileSidebar();
@@ -2446,9 +2448,9 @@
     JBT: {
       id: "JBT",
       badge: "💼 Chuẩn JBT / J.TEST",
-      stamp: "実用日本語検定 J.TEST & JBT • 実戦語彙・記述",
-      title: "Kỳ thi Thực dụng J.TEST & Giao tiếp JBT (Có tự gõ Hiragana)",
-      desc: "Gồm 問題A (Đọc Kanji thực tế), 問題B (Chọn Kanji văn cảnh công việc/đời sống) & 問題C (記述問題 — Tự gõ Hiragana trực tiếp vào phiếu thi)."
+      stamp: "実用日本語検定 J.TEST & JBT • 実戦語彙・四択",
+      title: "Kỳ thi Thực dụng J.TEST & Giao tiếp JBT (100% Trắc nghiệm)",
+      desc: "Gồm 問題A (Đọc Kanji thực tế), 問題B (Chọn Kanji văn cảnh công việc/đời sống) & 問題C (Trắc nghiệm Ý nghĩa & Cách dùng từ vựng thực chiến)."
     },
     TOPJ: {
       id: "TOPJ",
@@ -2461,8 +2463,8 @@
       id: "ALL",
       badge: "🔥 Tổng Hợp Đa Kỳ Thi",
       stamp: "総合実戦試験 (JLPT + NAT-TEST + JBT/J.TEST + TOPJ)",
-      title: "Đề Thi Tổng Hợp 4 Kỳ Thi (All-in-One)",
-      desc: "Kết hợp cả 4 dạng bài thực chiến: Đọc Hiragana, Chọn Kanji bẫy hình tự, Điền từ vào chỗ trống (   ) và Tự gõ Hiragana (記述式)."
+      title: "Đề Thi Tổng Hợp 4 Kỳ Thi (100% Multiple Choice)",
+      desc: "Kết hợp 4 phần trắc nghiệm: 問題1 (Đọc Hiragana), 問題2 (Chọn Kanji bẫy hình tự), 問題3 (Điền từ vào chỗ trống) & 問題4 (Ý nghĩa từ ghép, Âm Hán Việt & Bộ thủ)."
     }
   };
 
@@ -2748,10 +2750,8 @@
           usedTemplatesInPaper,
           false
         );
-        // Replace 【word】 with blank （　　　） and give Vietnamese meaning cue so context is 100% unambiguous
-        const clozeSentence =
-          rawSentence.replace(`【${item.word}】`, "【（　　　）】") +
-          `　（Gợi ý nghĩa: ${item.meaning}）`;
+        // Replace 【word】 with blank 【（　　　）】; keep hint hidden until user clicks "💡 Hiện gợi ý"
+        const clozeSentence = rawSentence.replace(`【${item.word}】`, "【（　　　）】");
 
         const otherWords = seededShuffle(
           scopedWords
@@ -2773,17 +2773,21 @@
           meaning: item.meaning,
           level: item.level,
           question: clozeSentence,
+          hint: `Nghĩa: ${item.meaning} • Hán Việt: [${item.hanViet}]`,
           answer: item.word,
           options
         };
       });
 
-    // Helper: Part 3B (J.TEST / JBT 記述問題 — Direct Hiragana Typing in Context)
-    const buildJbtTypingQuestions = (arr, mondaiNum) =>
-      arr.map((item) => {
+    // Helper: Part 3B / Part 4 (Multiple Choice — Vocabulary Meaning, Usage & Paraphrase in Context)
+    const buildMeaningAndUsageChoiceQuestions = (arr, mondaiNum) =>
+      arr.map((item, idx) => {
         const wHash = stringHashSeed(item.word);
-        const qSentence =
-          buildNaturalJlptSentence(
+        const k = item.kanjiObj;
+        const mode = idx % 2; // 0: Sentence underlined word -> pick meaning/Han-Viet; 1: Meaning/Situation -> pick Kanji word
+
+        if (mode === 0) {
+          const qSentence = buildNaturalJlptSentence(
             item.word,
             item.reading,
             item.wordObj,
@@ -2792,26 +2796,69 @@
             wHash + formatOffset + 3,
             usedTemplatesInPaper,
             false
-          ) + `　（Nghĩa: ${item.meaning}）`;
+          );
+          const correctLabel = `${item.meaning} [${item.hanViet}]`;
+          const poolLabels = Array.from(
+            new Set(
+              scopedWords
+                .filter((x) => x.word !== item.word && x.meaning !== item.meaning)
+                .map((x) => `${x.meaning} [${x.hanViet}]`)
+            )
+          );
+          const fallbackLabels = ALL_KANJI.filter((x) => x.char !== k.char).map(
+            (x) => `${x.meaning} [${x.hanViet}]`
+          );
+          const otherLabels = seededShuffle(
+            poolLabels.length >= 3 ? poolLabels : [...poolLabels, ...fallbackLabels],
+            seedBase + 105 + idx
+          ).slice(0, 3);
+          const options = seededShuffle([correctLabel, ...otherLabels], seedBase + 115 + idx);
 
-        return {
-          qNumber: qCounter++,
-          mondai: mondaiNum,
-          inputType: "typing",
-          kanjiChar: item.kanjiObj.char,
-          lessonId: item.kanjiObj.lessonId,
-          word: item.word,
-          reading: item.reading,
-          hanViet: item.hanViet,
-          meaning: item.meaning,
-          level: item.level,
-          question: qSentence,
-          answer: item.reading,
-          options: []
-        };
+          return {
+            qNumber: qCounter++,
+            mondai: mondaiNum,
+            inputType: "choice",
+            kanjiChar: k.char,
+            lessonId: k.lessonId,
+            word: item.word,
+            reading: item.reading,
+            hanViet: item.hanViet,
+            meaning: item.meaning,
+            level: item.level,
+            question: qSentence,
+            hint: `Cách đọc: ${item.reading} • Bộ thủ chữ 「${k.char}」: ${k.radical}`,
+            answer: correctLabel,
+            options
+          };
+        } else {
+          const options = buildLookalikeKanjiOptions(
+            item.word,
+            [],
+            k,
+            targetKanjiList,
+            allowedKanjiSet,
+            seedBase + 125 + idx
+          );
+          return {
+            qNumber: qCounter++,
+            mondai: mondaiNum,
+            inputType: "choice",
+            kanjiChar: k.char,
+            lessonId: k.lessonId,
+            word: item.word,
+            reading: item.reading,
+            hanViet: item.hanViet,
+            meaning: item.meaning,
+            level: item.level,
+            question: `Từ vựng Kanji nào dưới đây mang ý nghĩa là 「【${item.meaning}】」?`,
+            hint: `Âm Hán Việt: [${item.hanViet}] • Cách đọc: ${item.reading}`,
+            answer: item.word,
+            options
+          };
+        }
       });
 
-    // Helper: Part 3C (TOPJ / JPT Radical, Structure & Han-Viet Recognition)
+    // Helper: Part 3C (TOPJ / JPT Radical, Structure & Han-Viet Recognition — Multiple Choice)
     const buildTopjStructureQuestions = (arr, mondaiNum) =>
       arr.map((item, idx) => {
         const k = item.kanjiObj;
@@ -2819,9 +2866,9 @@
         if (askRadical) {
           const otherRads = seededShuffle(
             Array.from(new Set(ALL_KANJI.filter((x) => x.radical !== k.radical).map((x) => x.radical))),
-            seedBase + 120 + idx
+            seedBase + 140 + idx
           ).slice(0, 3);
-          const options = seededShuffle([k.radical, ...otherRads], seedBase + 135 + idx);
+          const options = seededShuffle([k.radical, ...otherRads], seedBase + 155 + idx);
           return {
             qNumber: qCounter++,
             mondai: mondaiNum,
@@ -2833,7 +2880,8 @@
             hanViet: k.hanViet,
             meaning: k.meaning,
             level: item.level,
-            question: `漢字「【${k.char}】」（trong từ ${item.word} - ${item.meaning}） có bộ thủ chính (部首) là gì?`,
+            question: `Chữ Kanji 「【${k.char}】」 (trong từ vựng 「${item.word}」) có bộ thủ chính (部首) là gì?`,
+            hint: `Âm Hán Việt: [${k.hanViet}] (${k.meaning}) • Cấu tạo: ${k.components}`,
             answer: k.radical,
             options
           };
@@ -2841,9 +2889,9 @@
           const correctLabel = `${k.hanViet} — ${k.meaning}`;
           const otherLabels = seededShuffle(
             ALL_KANJI.filter((x) => x.char !== k.char).map((x) => `${x.hanViet} — ${x.meaning}`),
-            seedBase + 150 + idx
+            seedBase + 170 + idx
           ).slice(0, 3);
-          const options = seededShuffle([correctLabel, ...otherLabels], seedBase + 165 + idx);
+          const options = seededShuffle([correctLabel, ...otherLabels], seedBase + 185 + idx);
           return {
             qNumber: qCounter++,
             mondai: mondaiNum,
@@ -2855,7 +2903,8 @@
             hanViet: k.hanViet,
             meaning: k.meaning,
             level: item.level,
-            question: `漢字「【${k.char}】」（Cấu tạo: ${k.components}） có Âm Hán Việt và nghĩa chính là gì?`,
+            question: `Chữ Kanji 「【${k.char}】」 (trong từ vựng 「${item.word}」) có Âm Hán Việt và nghĩa chính là gì?`,
+            hint: `Cách đọc từ 「${item.word}」: ${item.reading} • Bộ thủ: ${k.radical} (${k.components})`,
             answer: correctLabel,
             options
           };
@@ -2885,7 +2934,7 @@
         {
           id: "m3",
           titleJp: "問題3　（　　　）に なにを いれますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
-          titleVi: "Phần 3 (文脈規定 — Điền từ vựng Kanji vào chỗ trống): Chọn từ vựng phù hợp nhất với ngữ cảnh câu.",
+          titleVi: "Phần 3 (文脈規定 — Điền từ vựng Kanji vào chỗ trống): Chọn từ phù hợp với ngữ cảnh (Bấm 「💡 Hiện gợi ý」 nếu muốn xem nghĩa).",
           shortLabel: "問題3 (Điền từ)",
           questions: s3
         }
@@ -2912,7 +2961,7 @@
         {
           id: "nat3",
           titleJp: "問題III　【NAT-TEST 語彙の用法】 つぎの ぶんの （　　　）に いれるのに いちばん いい ことばを えらびなさい。",
-          titleVi: "Phần III (Cách dùng từ ghép trong câu): Chọn từ ghép Kanji khớp với ngữ cảnh và ý nghĩa.",
+          titleVi: "Phần III (Cách dùng từ ghép trong câu): Chọn từ ghép Kanji khớp với ngữ cảnh (Bấm 「💡 Hiện gợi ý」 nếu cần trợ giúp).",
           shortLabel: "問題III (Từ ghép)",
           questions: s3
         }
@@ -2920,7 +2969,7 @@
     } else if (examFormat === "JBT") {
       const s1 = buildReadingQuestions(part1Raw, 1);
       const s2 = buildKanjiQuestions(part2Raw, 2, true);
-      const s3 = buildJbtTypingQuestions(part3Raw, 3);
+      const s3 = buildMeaningAndUsageChoiceQuestions(part3Raw, 3);
       sections = [
         {
           id: "jbt1",
@@ -2938,9 +2987,9 @@
         },
         {
           id: "jbt3",
-          titleJp: "問題C　【J.TEST 記述式・書き取り】 <u>　　　</u>の 漢字の よみかたを ひらがな（または ローマ字）で 入力して ください。",
-          titleVi: "Phần C (Đặc sản J.TEST — Tự gõ cách đọc Hiragana/Romaji không có đáp án gợi ý sẵn):",
-          shortLabel: "問題C (Tự gõ Hira)",
+          titleJp: "問題C　【JBT / J.TEST 語彙の意味・用法】 <u>　　　</u>の ことばの 意味（いみ）や ただしい 漢字語彙を １・２・３・４から えらんで ください。",
+          titleVi: "Phần C (Trắc nghiệm Ý nghĩa & Cách dùng từ vựng thực tế — 4 lựa chọn, có nút 「💡 Hiện gợi ý」):",
+          shortLabel: "問題C (Nghĩa & Cách dùng)",
           questions: s3
         }
       ];
@@ -2966,47 +3015,47 @@
         {
           id: "topj3",
           titleJp: "問題3　【TOPJ 漢字の構成・部首・漢越】 つぎの 漢字の 部首（ぶしゅ）と 意味（いみ）を えらんで ください。",
-          titleVi: "Phần 3 (Kiến thức Bộ thủ • Cấu tạo chiết tự & Âm Hán Việt):",
+          titleVi: "Phần 3 (Trắc nghiệm Bộ thủ • Cấu tạo chiết tự & Âm Hán Việt):",
           shortLabel: "問題3 (Bộ thủ & Hán Việt)",
           questions: s3
         }
       ];
     } else {
-      // ALL-IN-ONE
+      // ALL-IN-ONE (100% Multiple Choice across all 4 sections)
       const half3 = Math.max(1, Math.floor(part3Raw.length / 2));
       const p3a = part3Raw.slice(0, half3);
       const p3b = part3Raw.slice(half3);
       const s1 = buildReadingQuestions(part1Raw, 1);
       const s2 = buildKanjiQuestions(part2Raw, 2, true);
       const s3 = buildContextClozeQuestions(p3a, 3);
-      const s4 = buildJbtTypingQuestions(p3b, 4);
+      const s4 = buildMeaningAndUsageChoiceQuestions(p3b, 4);
       sections = [
         {
           id: "all1",
           titleJp: "問題1　【JLPT / NAT 漢字読み】 <u>　　　</u>のことばは ひらがなで どう かきますか。",
-          titleVi: "Phần 1 (Chuyển từ Kanji sang Hiragana):",
+          titleVi: "Phần 1 (Chuyển từ Kanji sang Hiragana — 4 đáp án):",
           shortLabel: "問題1 (Đọc Hira)",
           questions: s1
         },
         {
           id: "all2",
           titleJp: "問題2　【JLPT / NAT 漢字表記】 <u>　　　</u>のことばは どう かきますか。",
-          titleVi: "Phần 2 (Chuyển từ Hiragana sang Kanji & Bẫy hình tự):",
+          titleVi: "Phần 2 (Chuyển từ Hiragana sang Kanji & Bẫy hình tự — 4 đáp án):",
           shortLabel: "問題2 (Chọn Kanji)",
           questions: s2
         },
         {
           id: "all3",
           titleJp: "問題3　【文脈規定】 （　　　）に いれるのに いちばん いい ことばを えらんで ください。",
-          titleVi: "Phần 3 (Điền từ vựng Kanji vào chỗ trống):",
+          titleVi: "Phần 3 (Điền từ vựng Kanji vào chỗ trống — Gợi ý đã được ẩn, bấm 「💡 Hiện gợi ý」 khi cần xem):",
           shortLabel: "問題3 (Điền từ)",
           questions: s3
         },
         {
           id: "all4",
-          titleJp: "問題4　【J.TEST 記述式】 <u>　　　</u>の 漢字の よみかたを ひらがな（ローマ字）で 入力して ください。",
-          titleVi: "Phần 4 (Tự gõ cách đọc Hiragana/Romaji trực tiếp):",
-          shortLabel: "問題4 (Tự gõ Hira)",
+          titleJp: "問題4　【類義・語彙の意味・用法】 <u>　　　</u>の ことばの 意味（いみ）や ただしい 漢字語彙を １・２・３・４から えらんで ください。",
+          titleVi: "Phần 4 (Trắc nghiệm Ý nghĩa Từ ghép, Âm Hán Việt & Cách dùng trong câu — 4 đáp án Multiple Choice):",
+          shortLabel: "問題4 (Nghĩa & Từ ghép)",
           questions: s4
         }
       ].filter((sec) => sec.questions.length > 0);
@@ -3070,7 +3119,8 @@
       allQuestions: examData.allQuestions,
       instantFeedback: false,
       submitted: false,
-      userAnswers: {}
+      userAnswers: {},
+      revealedHints: {}
     };
     currentView = "jlpt-exam";
     closeMobileSidebar();
@@ -3219,8 +3269,16 @@
     if (!activeJlptExam) return;
     activeJlptExam.submitted = false;
     activeJlptExam.userAnswers = {};
+    activeJlptExam.revealedHints = {};
     renderApp();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  window.toggleJlptQuestionHint = function (qNumber) {
+    if (!activeJlptExam) return;
+    activeJlptExam.revealedHints = activeJlptExam.revealedHints || {};
+    activeJlptExam.revealedHints[qNumber] = !activeJlptExam.revealedHints[qNumber];
+    renderApp();
   };
 
   function formatJlptSentence(sentence) {
@@ -3235,12 +3293,33 @@
     const showResult = exam.submitted || (exam.instantFeedback && picked !== undefined && picked !== "");
     const isCorrect = picked === q.answer;
     const kObj = KANJI_MAP[q.kanjiChar];
+    const isHintShown = !!(exam.revealedHints && exam.revealedHints[q.qNumber]);
 
     return `
       <div class="jlpt-question-item" id="jlpt-q-${q.qNumber}">
         <div class="jlpt-q-line">
           <span class="jlpt-q-num">${q.qNumber}</span>
-          <div class="jlpt-q-sentence">${formatJlptSentence(q.question)}</div>
+          <div class="jlpt-q-sentence">
+            ${formatJlptSentence(q.question)}
+            ${
+              q.hint
+                ? `
+                  <button
+                    type="button"
+                    class="jlpt-hint-btn ${isHintShown ? "active" : ""}"
+                    onclick="window.toggleJlptQuestionHint(${q.qNumber})"
+                  >
+                    ${isHintShown ? "🙈 Ẩn gợi ý" : "💡 Hiện gợi ý"}
+                  </button>
+                  ${
+                    isHintShown
+                      ? `<span class="jlpt-hint-badge">💡 ${escapeHtml(q.hint)}</span>`
+                      : ""
+                  }
+                `
+                : ""
+            }
+          </div>
         </div>
         ${
           q.inputType === "typing"
