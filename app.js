@@ -1400,7 +1400,13 @@
       bc.innerHTML = `
         <span class="crumb-link" onclick="window.switchView('dashboard')">Lộ trình</span>
         <span>›</span>
-        <span>🏆 Hệ thống Bài Test Tổng (2–3 Chương & まとめテスト)</span>
+        <span>🏆 Hệ thống Bài Test Tổng & Bộ Đề Đa Kỳ Thi</span>
+      `;
+    } else if (currentView === "custom-practice") {
+      bc.innerHTML = `
+        <span class="crumb-link" onclick="window.switchView('dashboard')">Lộ trình</span>
+        <span>›</span>
+        <span style="color:var(--primary)">🎛️ Tự Chọn Bài / Chữ Kanji & Tạo Đề (JLPT • NAT-TEST • JBT/J.TEST • TOPJ)</span>
       `;
     } else if (currentView === "notebook") {
       bc.innerHTML = `
@@ -1463,6 +1469,9 @@
           <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="window.openLesson('${currentLessonId}')">
               ▶ Học tiếp Bài ${LESSON_MAP[currentLessonId].id} (${escapeHtml(LESSON_MAP[currentLessonId].titleVi)})
+            </button>
+            <button class="btn btn-secondary" style="background:#fff;color:var(--primary);border-color:#fff;font-weight:800" onclick="window.switchView('custom-practice')">
+              🎛️ Tự Chọn Bài / Kanji & Tạo Đề (JLPT • NAT • JBT)
             </button>
             <button class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.25)" onclick="window.switchView('checkpoints')">
               🏆 Làm Bài Test Tổng
@@ -2416,31 +2425,646 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  window.startCustomCheckpointQuiz = function (setNumber) {
-    const checkedChs = Array.from(document.querySelectorAll(".custom-ch-checkbox:checked")).map((el) =>
-      Number(el.value)
+  // ============================================================================
+  // MULTI-EXAM CUSTOM STUDIO (CHỌN TỪNG CHỮ KANJI / TỪNG BÀI & ĐA KỲ THI: JLPT, NAT-TEST, JBT/J.TEST, TOPJ)
+  // ============================================================================
+  const EXAM_FORMATS = {
+    JLPT: {
+      id: "JLPT",
+      badge: "🇯🇵 Chuẩn JLPT N4",
+      stamp: "日本語能力試験 JLPT N4 • 文字・語彙",
+      title: "Kỳ thi Năng lực Nhật ngữ JLPT N4",
+      desc: "Gồm 問題1 (Đọc Kanji → Hiragana), 問題2 (Chuyển Hiragana → Kanji) & 問題3 (Điền từ vựng Kanji vào chỗ trống theo ngữ cảnh)."
+    },
+    NAT: {
+      id: "NAT",
+      badge: "🏅 Chuẩn NAT-TEST 4級",
+      stamp: "日本語 NAT-TEST 4級 • 文字・語彙",
+      title: "Kỳ thi NAT-TEST 4級 (Bẫy Âm đọc & Chữ gần giống)",
+      desc: "Gồm 問題I (Bẫy trường âm/âm ngắt/âm đục), 問題II (Bẫy chữ Kanji có bộ thủ & hình dáng gần giống) & 問題III (Ý nghĩa từ ghép)."
+    },
+    JBT: {
+      id: "JBT",
+      badge: "💼 Chuẩn JBT / J.TEST",
+      stamp: "実用日本語検定 J.TEST & JBT • 実戦語彙・記述",
+      title: "Kỳ thi Thực dụng J.TEST & Giao tiếp JBT (Có tự gõ Hiragana)",
+      desc: "Gồm 問題A (Đọc Kanji thực tế), 問題B (Chọn Kanji văn cảnh công việc/đời sống) & 問題C (記述問題 — Tự gõ Hiragana trực tiếp vào phiếu thi)."
+    },
+    TOPJ: {
+      id: "TOPJ",
+      badge: "🌏 Chuẩn JPT / TOPJ",
+      stamp: "実用日本語運用能力試験 TOPJ / JPT • 漢字・語彙",
+      title: "Kỳ thi Năng lực Ứng dụng TOPJ & JPT",
+      desc: "Gồm 問題1 (Phản xạ đọc nhanh Kanji), 問題2 (Hoàn thành từ ghép trong câu) & 問題3 (Nhận diện Bộ thủ, Chiết tự & Âm Hán Việt)."
+    },
+    ALL: {
+      id: "ALL",
+      badge: "🔥 Tổng Hợp Đa Kỳ Thi",
+      stamp: "総合実戦試験 (JLPT + NAT-TEST + JBT/J.TEST + TOPJ)",
+      title: "Đề Thi Tổng Hợp 4 Kỳ Thi (All-in-One)",
+      desc: "Kết hợp cả 4 dạng bài thực chiến: Đọc Hiragana, Chọn Kanji bẫy hình tự, Điền từ vào chỗ trống (   ) và Tự gõ Hiragana (記述式)."
+    }
+  };
+
+  // Default selection: Bài 1, 2 của Chương 1 + Bài 1, 2 của Chương 2 (như ví dụ của người dùng)
+  const customSelectorState = {
+    selectedKanjiSet: new Set(
+      ["1-1", "1-2", "2-1", "2-2"].flatMap((lid) =>
+        LESSON_MAP[lid] ? LESSON_MAP[lid].kanjiList.map((k) => k.char) : []
+      )
+    ),
+    examFormat: "JLPT",
+    questionCount: 20
+  };
+
+  window.toggleCustomChapter = function (chId) {
+    const ch = CHAPTERS.find((x) => x.id === chId);
+    if (!ch) return;
+    const chChars = ch.lessons.flatMap((l) => l.kanjiList.map((k) => k.char));
+    const allPicked = chChars.every((c) => customSelectorState.selectedKanjiSet.has(c));
+    chChars.forEach((c) => {
+      if (allPicked) customSelectorState.selectedKanjiSet.delete(c);
+      else customSelectorState.selectedKanjiSet.add(c);
+    });
+    renderApp();
+  };
+
+  window.toggleCustomLesson = function (lessonId) {
+    const lesson = LESSON_MAP[lessonId];
+    if (!lesson) return;
+    const lChars = lesson.kanjiList.map((k) => k.char);
+    const allPicked = lChars.every((c) => customSelectorState.selectedKanjiSet.has(c));
+    lChars.forEach((c) => {
+      if (allPicked) customSelectorState.selectedKanjiSet.delete(c);
+      else customSelectorState.selectedKanjiSet.add(c);
+    });
+    renderApp();
+  };
+
+  window.toggleCustomKanji = function (char) {
+    if (customSelectorState.selectedKanjiSet.has(char)) {
+      customSelectorState.selectedKanjiSet.delete(char);
+    } else {
+      customSelectorState.selectedKanjiSet.add(char);
+    }
+    renderApp();
+  };
+
+  window.applyCustomPreset = function (preset) {
+    customSelectorState.selectedKanjiSet.clear();
+    if (preset === "example-12-12") {
+      ["1-1", "1-2", "2-1", "2-2"].forEach((lid) => {
+        if (LESSON_MAP[lid]) {
+          LESSON_MAP[lid].kanjiList.forEach((k) => customSelectorState.selectedKanjiSet.add(k.char));
+        }
+      });
+    } else if (preset === "all") {
+      ALL_KANJI.forEach((k) => customSelectorState.selectedKanjiSet.add(k.char));
+    } else if (preset === "mastered") {
+      ALL_KANJI.filter((k) => userState.mastered[k.char]).forEach((k) =>
+        customSelectorState.selectedKanjiSet.add(k.char)
+      );
+    } else if (preset === "starred") {
+      ALL_KANJI.filter((k) => userState.starred[k.char]).forEach((k) =>
+        customSelectorState.selectedKanjiSet.add(k.char)
+      );
+    } else if (preset === "mistakes") {
+      ALL_KANJI.filter((k) => (userState.mistakes[k.char] || 0) > 0).forEach((k) =>
+        customSelectorState.selectedKanjiSet.add(k.char)
+      );
+    }
+    renderApp();
+  };
+
+  window.setCustomExamFormat = function (fmt) {
+    if (EXAM_FORMATS[fmt]) {
+      customSelectorState.examFormat = fmt;
+      renderApp();
+    }
+  };
+
+  window.setCustomQuestionCount = function (cnt) {
+    customSelectorState.questionCount = Number(cnt) || 20;
+    renderApp();
+  };
+
+  function buildLookalikeKanjiOptions(correctWord, existingOpts, k, scopedKanjiList, allowedKanjiSet, seed) {
+    const cleanAns = correctWord.replace(/〜/g, "").trim();
+    const distractors = new Set();
+
+    // Prioritize lookalike Kanji from k.lookalikes first (classic NAT-TEST trap!)
+    if (k.lookalikes && k.lookalikes.length > 0 && cleanAns.includes(k.char)) {
+      k.lookalikes.forEach((lk) => {
+        if (lk.char && lk.char !== k.char) {
+          const trapWord = cleanAns.replace(k.char, lk.char);
+          if (trapWord !== cleanAns) distractors.add(trapWord);
+        }
+      });
+    }
+
+    const baseOpts = buildScopedKanjiOptions(correctWord, existingOpts, k, scopedKanjiList, allowedKanjiSet, seed);
+    baseOpts.forEach((o) => {
+      if (o !== cleanAns) distractors.add(o);
+    });
+
+    const chosen = seededShuffle(Array.from(distractors), seed).slice(0, 3);
+    return seededShuffle([cleanAns, ...chosen], seed + 13);
+  }
+
+  function buildCustomMultiExamSet(selectedCharsArray, examFormat, setNumber, totalQuestions) {
+    const selectedSet = new Set(selectedCharsArray);
+    const targetKanjiList = ALL_KANJI.filter((k) => selectedSet.has(k.char));
+    if (targetKanjiList.length === 0) {
+      return { sections: [], mondai1: [], mondai2: [], allQuestions: [], totalVocabInScope: 0 };
+    }
+
+    // Allowed Kanji scope: all selected Kanji + Kanji in their compound words + Kanji from lessons up to max selected chapter
+    const maxChId = Math.max(...targetKanjiList.map((k) => k.chapterId));
+    const allowedKanjiSet = new Set(selectedCharsArray);
+    CHAPTERS.filter((ch) => ch.id <= maxChId).forEach((ch) =>
+      ch.lessons.forEach((l) => l.kanjiList.forEach((k) => allowedKanjiSet.add(k.char)))
     );
-    const chIds = checkedChs.length > 0 ? checkedChs : (activeJlptExam ? activeJlptExam.chapterIds : [1, 2]);
-    if (chIds.length === 0) {
-      alert("Bạn hãy chọn ít nhất 1 chương để tạo đề Test Tổng nhé!");
+    targetKanjiList.forEach((k) => {
+      getKanjiWords(k).forEach((w) => {
+        for (const ch of w.word) {
+          if (/[\u4e00-\u9faf]/.test(ch)) allowedKanjiSet.add(ch);
+        }
+      });
+    });
+
+    const scopeKey = `${examFormat}-${selectedCharsArray.join("")}`;
+    const scopeHash = stringHashSeed(scopeKey);
+    const formatOffset = { JLPT: 3, NAT: 9, JBT: 15, TOPJ: 21, ALL: 27 }[examFormat] || 3;
+
+    const scopedReadings = targetKanjiList.flatMap((k) =>
+      getKanjiWords(k).map((w) => w.reading.replace(/〜/g, "").trim())
+    );
+    const scopedWords = targetKanjiList.flatMap((k) =>
+      getKanjiWords(k).map((w) => ({
+        word: w.word.replace(/〜/g, "").trim(),
+        reading: w.reading.replace(/〜/g, "").trim(),
+        meaning: w.meaning || k.meaning,
+        hanViet: w.hanViet || k.hanViet
+      }))
+    );
+
+    // Build per-Kanji vocabulary buckets
+    let perKanjiBuckets = targetKanjiList.map((k, kIdx) => {
+      const items = [];
+      const seenWords = new Set();
+
+      getKanjiWords(k).forEach((w) => {
+        const cleanWord = w.word.replace(/〜/g, "").trim();
+        const cleanRead = w.reading.replace(/〜/g, "").trim();
+        if (!cleanWord || !cleanRead || !/[\u4e00-\u9faf]/.test(cleanWord)) return;
+        if (seenWords.has(cleanWord)) return;
+        seenWords.add(cleanWord);
+        items.push({
+          kanjiObj: k,
+          wordObj: w,
+          word: cleanWord,
+          reading: cleanRead,
+          hanViet: w.hanViet || k.hanViet,
+          meaning: w.meaning || k.meaning,
+          level: w.level || "N4"
+        });
+      });
+
+      const shift = (scopeHash + kIdx) % Math.max(items.length, 1);
+      return items.slice(shift).concat(items.slice(0, shift));
+    });
+
+    perKanjiBuckets = seededShuffle(perKanjiBuckets, scopeHash);
+
+    const masterItems = [];
+    const globalSeenWords = new Set();
+    const maxDepth = Math.max(...perKanjiBuckets.map((b) => b.length), 1);
+    for (let d = 0; d < maxDepth; d++) {
+      for (let b = 0; b < perKanjiBuckets.length; b++) {
+        const item = perKanjiBuckets[b][d];
+        if (item && !globalSeenWords.has(item.word)) {
+          globalSeenWords.add(item.word);
+          masterItems.push(item);
+        }
+      }
+    }
+
+    const actualTotal = Math.min(totalQuestions, Math.max(6, masterItems.length));
+    const startOffset = (setNumber - 1) * actualTotal;
+    const selectedSlice = [];
+    for (let i = 0; i < actualTotal; i++) {
+      selectedSlice.push(masterItems[(startOffset + i) % masterItems.length]);
+    }
+
+    // Divide selectedSlice into 3 (or 4) parts without any repeated words
+    const n1 = Math.max(2, Math.round(actualTotal * 0.35));
+    const n2 = Math.max(2, Math.round(actualTotal * 0.35));
+    const part1Raw = selectedSlice.slice(0, n1);
+    const part2Raw = selectedSlice.slice(n1, n1 + n2);
+    const part3Raw = selectedSlice.slice(n1 + n2);
+
+    const seedBase = (scopeHash % 10000) + setNumber * 113;
+    const usedTemplatesInPaper = new Set();
+    let qCounter = 1;
+
+    // Helper: Part 1 (Reading Kanji -> Hiragana)
+    const buildReadingQuestions = (arr, mondaiNum) =>
+      arr.map((item, idx) => {
+        const wHash = stringHashSeed(item.word);
+        const distractors = buildPhoneticReadingDistractors(item.reading, [], scopedReadings);
+        const options = seededShuffle([item.reading, ...distractors], seedBase + idx);
+        const qSentence = buildNaturalJlptSentence(
+          item.word,
+          item.reading,
+          item.wordObj,
+          item.kanjiObj,
+          "mondai1",
+          wHash + formatOffset,
+          usedTemplatesInPaper,
+          false
+        );
+        return {
+          qNumber: qCounter++,
+          mondai: mondaiNum,
+          inputType: "choice",
+          kanjiChar: item.kanjiObj.char,
+          lessonId: item.kanjiObj.lessonId,
+          word: item.word,
+          reading: item.reading,
+          hanViet: item.hanViet,
+          meaning: item.meaning,
+          level: item.level,
+          question: qSentence,
+          answer: item.reading,
+          options
+        };
+      });
+
+    // Helper: Part 2 (Kanji Writing Hiragana -> Kanji)
+    const buildKanjiQuestions = (arr, mondaiNum, useLookalikeTrap) =>
+      arr.map((item, idx) => {
+        const wHash = stringHashSeed(item.word);
+        const options = useLookalikeTrap
+          ? buildLookalikeKanjiOptions(item.word, [], item.kanjiObj, targetKanjiList, allowedKanjiSet, seedBase + 40 + idx)
+          : buildScopedKanjiOptions(item.word, [], item.kanjiObj, targetKanjiList, allowedKanjiSet, seedBase + 40 + idx);
+        const qSentence = buildNaturalJlptSentence(
+          item.word,
+          item.reading,
+          item.wordObj,
+          item.kanjiObj,
+          "mondai2",
+          wHash + formatOffset,
+          usedTemplatesInPaper,
+          false
+        );
+        return {
+          qNumber: qCounter++,
+          mondai: mondaiNum,
+          inputType: "choice",
+          kanjiChar: item.kanjiObj.char,
+          lessonId: item.kanjiObj.lessonId,
+          word: item.word,
+          reading: item.reading,
+          hanViet: item.hanViet,
+          meaning: item.meaning,
+          level: item.level,
+          question: qSentence,
+          answer: item.word,
+          options
+        };
+      });
+
+    // Helper: Part 3A (Context Cloze / Vocabulary Meaning in Context — JLPT Mondai 3 & NAT-TEST Mondai III)
+    const buildContextClozeQuestions = (arr, mondaiNum) =>
+      arr.map((item, idx) => {
+        const wHash = stringHashSeed(item.word);
+        const rawSentence = buildNaturalJlptSentence(
+          item.word,
+          item.reading,
+          item.wordObj,
+          item.kanjiObj,
+          "mondai1",
+          wHash + formatOffset + 2,
+          usedTemplatesInPaper,
+          false
+        );
+        // Replace 【word】 with blank （　　　） and give Vietnamese meaning cue so context is 100% unambiguous
+        const clozeSentence =
+          rawSentence.replace(`【${item.word}】`, "【（　　　）】") +
+          `　（Gợi ý nghĩa: ${item.meaning}）`;
+
+        const otherWords = seededShuffle(
+          scopedWords
+            .map((x) => x.word)
+            .filter((w) => w && w !== item.word),
+          seedBase + 80 + idx
+        ).slice(0, 3);
+        const options = seededShuffle([item.word, ...otherWords], seedBase + 95 + idx);
+
+        return {
+          qNumber: qCounter++,
+          mondai: mondaiNum,
+          inputType: "choice",
+          kanjiChar: item.kanjiObj.char,
+          lessonId: item.kanjiObj.lessonId,
+          word: item.word,
+          reading: item.reading,
+          hanViet: item.hanViet,
+          meaning: item.meaning,
+          level: item.level,
+          question: clozeSentence,
+          answer: item.word,
+          options
+        };
+      });
+
+    // Helper: Part 3B (J.TEST / JBT 記述問題 — Direct Hiragana Typing in Context)
+    const buildJbtTypingQuestions = (arr, mondaiNum) =>
+      arr.map((item) => {
+        const wHash = stringHashSeed(item.word);
+        const qSentence =
+          buildNaturalJlptSentence(
+            item.word,
+            item.reading,
+            item.wordObj,
+            item.kanjiObj,
+            "mondai1",
+            wHash + formatOffset + 3,
+            usedTemplatesInPaper,
+            false
+          ) + `　（Nghĩa: ${item.meaning}）`;
+
+        return {
+          qNumber: qCounter++,
+          mondai: mondaiNum,
+          inputType: "typing",
+          kanjiChar: item.kanjiObj.char,
+          lessonId: item.kanjiObj.lessonId,
+          word: item.word,
+          reading: item.reading,
+          hanViet: item.hanViet,
+          meaning: item.meaning,
+          level: item.level,
+          question: qSentence,
+          answer: item.reading,
+          options: []
+        };
+      });
+
+    // Helper: Part 3C (TOPJ / JPT Radical, Structure & Han-Viet Recognition)
+    const buildTopjStructureQuestions = (arr, mondaiNum) =>
+      arr.map((item, idx) => {
+        const k = item.kanjiObj;
+        const askRadical = idx % 2 === 0;
+        if (askRadical) {
+          const otherRads = seededShuffle(
+            Array.from(new Set(ALL_KANJI.filter((x) => x.radical !== k.radical).map((x) => x.radical))),
+            seedBase + 120 + idx
+          ).slice(0, 3);
+          const options = seededShuffle([k.radical, ...otherRads], seedBase + 135 + idx);
+          return {
+            qNumber: qCounter++,
+            mondai: mondaiNum,
+            inputType: "choice",
+            kanjiChar: k.char,
+            lessonId: k.lessonId,
+            word: item.word,
+            reading: item.reading,
+            hanViet: k.hanViet,
+            meaning: k.meaning,
+            level: item.level,
+            question: `漢字「【${k.char}】」（trong từ ${item.word} - ${item.meaning}） có bộ thủ chính (部首) là gì?`,
+            answer: k.radical,
+            options
+          };
+        } else {
+          const correctLabel = `${k.hanViet} — ${k.meaning}`;
+          const otherLabels = seededShuffle(
+            ALL_KANJI.filter((x) => x.char !== k.char).map((x) => `${x.hanViet} — ${x.meaning}`),
+            seedBase + 150 + idx
+          ).slice(0, 3);
+          const options = seededShuffle([correctLabel, ...otherLabels], seedBase + 165 + idx);
+          return {
+            qNumber: qCounter++,
+            mondai: mondaiNum,
+            inputType: "choice",
+            kanjiChar: k.char,
+            lessonId: k.lessonId,
+            word: item.word,
+            reading: item.reading,
+            hanViet: k.hanViet,
+            meaning: k.meaning,
+            level: item.level,
+            question: `漢字「【${k.char}】」（Cấu tạo: ${k.components}） có Âm Hán Việt và nghĩa chính là gì?`,
+            answer: correctLabel,
+            options
+          };
+        }
+      });
+
+    let sections = [];
+    if (examFormat === "JLPT") {
+      const s1 = buildReadingQuestions(part1Raw, 1);
+      const s2 = buildKanjiQuestions(part2Raw, 2, false);
+      const s3 = buildContextClozeQuestions(part3Raw, 3);
+      sections = [
+        {
+          id: "m1",
+          titleJp: "問題1　<u>　　　</u>のことばは ひらがなで どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
+          titleVi: "Phần 1 (漢字読み — Kanji sang Hiragana): Chọn cách đọc Hiragana đúng cho từ gạch chân.",
+          shortLabel: "問題1 (Đọc Hira)",
+          questions: s1
+        },
+        {
+          id: "m2",
+          titleJp: "問題2　<u>　　　</u>のことばは どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
+          titleVi: "Phần 2 (表記 — Hiragana sang Kanji): Chọn chữ Kanji đúng cho từ gạch chân.",
+          shortLabel: "問題2 (Chọn Kanji)",
+          questions: s2
+        },
+        {
+          id: "m3",
+          titleJp: "問題3　（　　　）に なにを いれますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
+          titleVi: "Phần 3 (文脈規定 — Điền từ vựng Kanji vào chỗ trống): Chọn từ vựng phù hợp nhất với ngữ cảnh câu.",
+          shortLabel: "問題3 (Điền từ)",
+          questions: s3
+        }
+      ];
+    } else if (examFormat === "NAT") {
+      const s1 = buildReadingQuestions(part1Raw, 1);
+      const s2 = buildKanjiQuestions(part2Raw, 2, true);
+      const s3 = buildContextClozeQuestions(part3Raw, 3);
+      sections = [
+        {
+          id: "nat1",
+          titleJp: "問題I　【NAT-TEST 発音・表記】 <u>　　　</u>のことばの よみかたとして いちばん いい ものを えらびなさい。",
+          titleVi: "Phần I (Bẫy Trường âm • Âm ngắt • Âm đục): Chú ý phân biệt kỹ cách đọc chuẩn của từ Kanji gạch chân.",
+          shortLabel: "問題I (Bẫy Âm đọc)",
+          questions: s1
+        },
+        {
+          id: "nat2",
+          titleJp: "問題II　【NAT-TEST 同形・類字】 <u>　　　</u>のことばの 漢字（かんじ）として いちばん いい ものを えらびなさい。",
+          titleVi: "Phần II (Bẫy Chữ Kanji gần giống / Cùng bộ thủ): Phân biệt kỹ nét chữ và bộ thủ để không chọn nhầm chữ na ná.",
+          shortLabel: "問題II (Bẫy Hình tự)",
+          questions: s2
+        },
+        {
+          id: "nat3",
+          titleJp: "問題III　【NAT-TEST 語彙の用法】 つぎの ぶんの （　　　）に いれるのに いちばん いい ことばを えらびなさい。",
+          titleVi: "Phần III (Cách dùng từ ghép trong câu): Chọn từ ghép Kanji khớp với ngữ cảnh và ý nghĩa.",
+          shortLabel: "問題III (Từ ghép)",
+          questions: s3
+        }
+      ];
+    } else if (examFormat === "JBT") {
+      const s1 = buildReadingQuestions(part1Raw, 1);
+      const s2 = buildKanjiQuestions(part2Raw, 2, true);
+      const s3 = buildJbtTypingQuestions(part3Raw, 3);
+      sections = [
+        {
+          id: "jbt1",
+          titleJp: "問題A　【JBT / J.TEST 実用語彙の読み】 つぎの ぶんの <u>　　　</u>の 漢字の よみかたを えらんで ください。",
+          titleVi: "Phần A (Đọc Kanji thực tiễn giao tiếp & công việc): Chọn cách đọc Hiragana đúng.",
+          shortLabel: "問題A (Đọc thực tế)",
+          questions: s1
+        },
+        {
+          id: "jbt2",
+          titleJp: "問題B　【JBT / J.TEST 漢字選択】 つぎの ぶんの <u>　　　</u>を 漢字で かく とき、ただしい ものを えらんで ください。",
+          titleVi: "Phần B (Chọn Kanji thực chiến): Chọn cách viết Kanji chính xác trong câu.",
+          shortLabel: "問題B (Chọn Kanji)",
+          questions: s2
+        },
+        {
+          id: "jbt3",
+          titleJp: "問題C　【J.TEST 記述式・書き取り】 <u>　　　</u>の 漢字の よみかたを ひらがな（または ローマ字）で 入力して ください。",
+          titleVi: "Phần C (Đặc sản J.TEST — Tự gõ cách đọc Hiragana/Romaji không có đáp án gợi ý sẵn):",
+          shortLabel: "問題C (Tự gõ Hira)",
+          questions: s3
+        }
+      ];
+    } else if (examFormat === "TOPJ") {
+      const s1 = buildReadingQuestions(part1Raw, 1);
+      const s2 = buildKanjiQuestions(part2Raw, 2, false);
+      const s3 = buildTopjStructureQuestions(part3Raw, 3);
+      sections = [
+        {
+          id: "topj1",
+          titleJp: "問題1　【TOPJ / JPT 漢字の読み】 <u>　　　</u>の ことばの よみかたを １・２・３・４から えらんで ください。",
+          titleVi: "Phần 1 (Phản xạ đọc nhanh Kanji sang Hiragana):",
+          shortLabel: "問題1 (Đọc nhanh)",
+          questions: s1
+        },
+        {
+          id: "topj2",
+          titleJp: "問題2　【TOPJ / JPT 熟語表記】 <u>　　　</u>の ことばの 漢字を １・２・３・４から えらんで ください。",
+          titleVi: "Phần 2 (Hoàn thành từ ghép Kanji trong câu):",
+          shortLabel: "問題2 (Từ ghép)",
+          questions: s2
+        },
+        {
+          id: "topj3",
+          titleJp: "問題3　【TOPJ 漢字の構成・部首・漢越】 つぎの 漢字の 部首（ぶしゅ）と 意味（いみ）を えらんで ください。",
+          titleVi: "Phần 3 (Kiến thức Bộ thủ • Cấu tạo chiết tự & Âm Hán Việt):",
+          shortLabel: "問題3 (Bộ thủ & Hán Việt)",
+          questions: s3
+        }
+      ];
+    } else {
+      // ALL-IN-ONE
+      const half3 = Math.max(1, Math.floor(part3Raw.length / 2));
+      const p3a = part3Raw.slice(0, half3);
+      const p3b = part3Raw.slice(half3);
+      const s1 = buildReadingQuestions(part1Raw, 1);
+      const s2 = buildKanjiQuestions(part2Raw, 2, true);
+      const s3 = buildContextClozeQuestions(p3a, 3);
+      const s4 = buildJbtTypingQuestions(p3b, 4);
+      sections = [
+        {
+          id: "all1",
+          titleJp: "問題1　【JLPT / NAT 漢字読み】 <u>　　　</u>のことばは ひらがなで どう かきますか。",
+          titleVi: "Phần 1 (Chuyển từ Kanji sang Hiragana):",
+          shortLabel: "問題1 (Đọc Hira)",
+          questions: s1
+        },
+        {
+          id: "all2",
+          titleJp: "問題2　【JLPT / NAT 漢字表記】 <u>　　　</u>のことばは どう かきますか。",
+          titleVi: "Phần 2 (Chuyển từ Hiragana sang Kanji & Bẫy hình tự):",
+          shortLabel: "問題2 (Chọn Kanji)",
+          questions: s2
+        },
+        {
+          id: "all3",
+          titleJp: "問題3　【文脈規定】 （　　　）に いれるのに いちばん いい ことばを えらんで ください。",
+          titleVi: "Phần 3 (Điền từ vựng Kanji vào chỗ trống):",
+          shortLabel: "問題3 (Điền từ)",
+          questions: s3
+        },
+        {
+          id: "all4",
+          titleJp: "問題4　【J.TEST 記述式】 <u>　　　</u>の 漢字の よみかたを ひらがな（ローマ字）で 入力して ください。",
+          titleVi: "Phần 4 (Tự gõ cách đọc Hiragana/Romaji trực tiếp):",
+          shortLabel: "問題4 (Tự gõ Hira)",
+          questions: s4
+        }
+      ].filter((sec) => sec.questions.length > 0);
+    }
+
+    const allQuestions = sections.flatMap((s) => s.questions);
+    return {
+      sections,
+      mondai1: sections[0] ? sections[0].questions : [],
+      mondai2: sections[1] ? sections[1].questions : [],
+      allQuestions,
+      totalVocabInScope: masterItems.length
+    };
+  }
+
+  window.startSelectedKanjiExam = function (setNumber) {
+    const selectedChars = Array.from(customSelectorState.selectedKanjiSet);
+    if (selectedChars.length === 0) {
+      alert("Bạn hãy chọn ít nhất 1 chữ Kanji hoặc 1 Bài học để tạo đề luyện tập nhé!");
       return;
     }
-    const qSelect = document.getElementById("customQuizCountSelect");
-    const totalCount = qSelect ? Number(qSelect.value) || 20 : 20;
-    const perMondai = Math.max(5, Math.floor(totalCount / 2));
+    const fmt = customSelectorState.examFormat || "JLPT";
+    const fmtMeta = EXAM_FORMATS[fmt] || EXAM_FORMATS.JLPT;
+    const totalQ = customSelectorState.questionCount || 20;
     const sNum = setNumber || 1;
-    const examData = buildJlptExamSet(chIds, sNum, perMondai, "checkpoint", `custom-${chIds.join("-")}`);
+
+    const examData = buildCustomMultiExamSet(selectedChars, fmt, sNum, totalQ);
+
+    // Summarize selected lessons for label
+    const pickedLessons = [];
+    CHAPTERS.forEach((ch) => {
+      ch.lessons.forEach((l) => {
+        const countInL = l.kanjiList.filter((k) => customSelectorState.selectedKanjiSet.has(k.char)).length;
+        if (countInL === l.kanjiList.length) {
+          pickedLessons.push(`Bài ${l.id}`);
+        } else if (countInL > 0) {
+          pickedLessons.push(`Bài ${l.id} (${countInL}/${l.kanjiList.length} chữ)`);
+        }
+      });
+    });
+
+    const hashShort = stringHashSeed(selectedChars.join("")) % 100000;
     activeJlptExam = {
-      examKey: `custom-${chIds.join("-")}-set-${sNum}`,
-      baseType: "custom",
+      examKey: `custom-${fmt}-${hashShort}-set-${sNum}`,
+      baseType: "custom-kanji",
+      examFormat: fmt,
+      examStamp: fmtMeta.stamp,
+      selectedChars,
+      totalCustomCount: totalQ,
       lessonId: null,
       chapterId: null,
       cpId: null,
-      chapterIds: chIds,
+      chapterIds: [],
       setNumber: sNum,
-      perMondaiCount: perMondai,
-      title: `Đề Test Tổng Tùy Chỉnh (Chương ${chIds.join(", ")})`,
-      scopeLabel: `Chỉ gồm từ vựng & Kanji trong Chương ${chIds.join(", ")}`,
+      perMondaiCount: Math.floor(totalQ / 2),
+      title: `${fmtMeta.badge}: Đề Luyện Tập Theo Phạm Vi Đã Chọn (${selectedChars.length} chữ Kanji)`,
+      scopeLabel: `Phạm vi: ${pickedLessons.slice(0, 6).join(", ")}${pickedLessons.length > 6 ? ` (+${pickedLessons.length - 6} bài khác)` : ""} • Tổng ${selectedChars.length} chữ Kanji (${examData.totalVocabInScope} từ vựng) — Không lặp lại giữa 3 đề`,
+      sections: examData.sections,
       mondai1: examData.mondai1,
       mondai2: examData.mondai2,
       allQuestions: examData.allQuestions,
@@ -2449,8 +3073,38 @@
       userAnswers: {}
     };
     currentView = "jlpt-exam";
+    closeMobileSidebar();
     renderApp();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  window.startSelectedKanjiQuickQuiz = function (allowTyping) {
+    const selectedChars = Array.from(customSelectorState.selectedKanjiSet);
+    if (selectedChars.length === 0) {
+      alert("Bạn hãy chọn ít nhất 1 chữ Kanji hoặc 1 Bài học nhé!");
+      return;
+    }
+    const kanjiObjs = ALL_KANJI.filter((k) => customSelectorState.selectedKanjiSet.has(k.char));
+    const count = customSelectorState.questionCount || 20;
+    const questions = buildQuizPool(kanjiObjs, count, allowTyping);
+    activeQuiz = {
+      id: `custom-quick-${stringHashSeed(selectedChars.join("")) % 10000}`,
+      title: `Luyện Phản Xạ (${selectedChars.length} chữ Kanji đã chọn)`,
+      questions,
+      currentIndex: 0,
+      score: 0,
+      answered: false,
+      selectedAnswer: "",
+      isCorrect: false,
+      wrongKanjiSet: new Set()
+    };
+    currentView = "quiz-runner";
+    renderApp();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  window.startCustomCheckpointQuiz = function (setNumber) {
+    window.startSelectedKanjiExam(setNumber || 1);
   };
 
   window.switchJlptExamSet = function (setNumber) {
@@ -2461,6 +3115,8 @@
       window.startChapterTest(activeJlptExam.chapterId, setNumber);
     } else if (activeJlptExam.baseType === "checkpoint") {
       window.startCheckpointById(activeJlptExam.cpId, setNumber);
+    } else if (activeJlptExam.baseType === "custom-kanji") {
+      window.startSelectedKanjiExam(setNumber);
     } else {
       const examData = buildJlptExamSet(
         activeJlptExam.chapterIds,
@@ -2500,8 +3156,40 @@
     renderApp();
   };
 
+  window.handleJlptTypingInput = function (qNumber, inputEl) {
+    if (!activeJlptExam || activeJlptExam.submitted) return;
+    const raw = inputEl.value;
+    if (/[a-zA-Z]/.test(raw)) {
+      const converted = romajiToHiragana(raw, false);
+      if (converted !== raw) {
+        inputEl.value = converted;
+      }
+    }
+    activeJlptExam.userAnswers[qNumber] = romajiToHiragana(inputEl.value.trim(), true);
+  };
+
+  window.checkSingleJlptTyping = function (qNumber) {
+    if (!activeJlptExam) return;
+    const inp = document.getElementById(`jlpt-typing-${qNumber}`);
+    if (inp) {
+      const finalHira = romajiToHiragana(inp.value.trim(), true);
+      inp.value = finalHira;
+      activeJlptExam.userAnswers[qNumber] = finalHira;
+    }
+    renderApp();
+  };
+
   window.submitJlptExamPaper = function () {
     if (!activeJlptExam || activeJlptExam.submitted) return;
+    // Finalize any trailing 'n' in typing inputs
+    activeJlptExam.allQuestions.forEach((q) => {
+      if (q.inputType === "typing" && activeJlptExam.userAnswers[q.qNumber]) {
+        activeJlptExam.userAnswers[q.qNumber] = romajiToHiragana(
+          String(activeJlptExam.userAnswers[q.qNumber]).trim(),
+          true
+        );
+      }
+    });
     activeJlptExam.submitted = true;
 
     let correctCount = 0;
@@ -2544,7 +3232,7 @@
 
   function renderJlptQuestionBlock(q, exam) {
     const picked = exam.userAnswers[q.qNumber];
-    const showResult = exam.submitted || (exam.instantFeedback && picked !== undefined);
+    const showResult = exam.submitted || (exam.instantFeedback && picked !== undefined && picked !== "");
     const isCorrect = picked === q.answer;
     const kObj = KANJI_MAP[q.kanjiChar];
 
@@ -2554,29 +3242,54 @@
           <span class="jlpt-q-num">${q.qNumber}</span>
           <div class="jlpt-q-sentence">${formatJlptSentence(q.question)}</div>
         </div>
-        <div class="jlpt-choices-grid">
-          ${q.options
-            .map((opt, idx) => {
-              let cls = "jlpt-choice-btn";
-              if (!showResult && picked === opt) {
-                cls += " selected";
-              } else if (showResult) {
-                if (opt === q.answer) cls += " correct";
-                else if (picked === opt) cls += " wrong";
+        ${
+          q.inputType === "typing"
+            ? `
+            <div style="padding-left:44px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <input
+                type="text"
+                id="jlpt-typing-${q.qNumber}"
+                class="typing-input"
+                style="max-width:340px"
+                placeholder="Gõ Romaji (VD: kazoku) hoặc Hiragana..."
+                value="${escapeHtml(picked || "")}"
+                ${exam.submitted ? "disabled" : ""}
+                oninput="window.handleJlptTypingInput(${q.qNumber}, this)"
+                onkeydown="if(event.key==='Enter') window.checkSingleJlptTyping(${q.qNumber})"
+              />
+              ${
+                exam.instantFeedback && !exam.submitted
+                  ? `<button class="btn btn-indigo" onclick="window.checkSingleJlptTyping(${q.qNumber})">Kiểm tra</button>`
+                  : `<span style="font-size:12px;color:var(--text-muted)">💡 Gõ Romaji sẽ tự chuyển sang Hiragana</span>`
               }
-              return `
-                <button
-                  class="${cls}"
-                  ${exam.submitted ? "disabled" : ""}
-                  onclick="window.selectJlptChoice(${q.qNumber}, '${escapeHtml(opt)}')"
-                >
-                  <span class="jlpt-choice-num">${idx + 1}</span>
-                  <span>${escapeHtml(opt)}</span>
-                </button>
-              `;
-            })
-            .join("")}
-        </div>
+            </div>
+          `
+            : `
+            <div class="jlpt-choices-grid">
+              ${q.options
+                .map((opt, idx) => {
+                  let cls = "jlpt-choice-btn";
+                  if (!showResult && picked === opt) {
+                    cls += " selected";
+                  } else if (showResult) {
+                    if (opt === q.answer) cls += " correct";
+                    else if (picked === opt) cls += " wrong";
+                  }
+                  return `
+                    <button
+                      class="${cls}"
+                      ${exam.submitted ? "disabled" : ""}
+                      onclick="window.selectJlptChoice(${q.qNumber}, '${escapeHtml(opt)}')"
+                    >
+                      <span class="jlpt-choice-num">${idx + 1}</span>
+                      <span>${escapeHtml(opt)}</span>
+                    </button>
+                  `;
+                })
+                .join("")}
+            </div>
+          `
+        }
         ${
           showResult
             ? `
@@ -2586,8 +3299,8 @@
                   isCorrect
                     ? `✅ <strong>Chính xác!</strong>`
                     : picked
-                    ? `❌ <strong>Sai</strong> (Bạn chọn: ${escapeHtml(picked)})`
-                    : `⚪ <strong>Chưa chọn đáp án</strong>`
+                    ? `❌ <strong>Sai</strong> (Bạn trả lời: ${escapeHtml(picked)})`
+                    : `⚪ <strong>Chưa trả lời</strong>`
                 }
                 — Đáp án đúng: <strong class="jp-font">${escapeHtml(q.answer)}</strong>
                 • Từ vựng: <strong class="jp-font">${escapeHtml(q.word)}（${escapeHtml(q.reading)}）</strong>
@@ -2612,24 +3325,51 @@
     if (!activeJlptExam) return renderCheckpointsView();
     const ex = activeJlptExam;
     const totalQ = ex.allQuestions.length;
-    const answeredCount = Object.keys(ex.userAnswers).length;
+    const answeredCount = Object.keys(ex.userAnswers).filter((k) => ex.userAnswers[k] !== "").length;
 
-    let m1Correct = 0;
-    let m2Correct = 0;
+    const activeSections =
+      ex.sections && ex.sections.length > 0
+        ? ex.sections
+        : [
+            {
+              id: "m1",
+              titleJp:
+                "問題1　<u>　　　</u>のことばは ひらがなで どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
+              titleVi:
+                "Phần 1 (Chuyển từ Kanji sang Hiragana): Từ gạch chân được đọc bằng Hiragana như thế nào? Chọn 1 đáp án đúng nhất từ 1・2・3・4.",
+              shortLabel: "問題1 (Kanji → Hiragana)",
+              questions: ex.mondai1 || []
+            },
+            {
+              id: "m2",
+              titleJp:
+                "問題2　<u>　　　</u>のことばは どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。",
+              titleVi:
+                "Phần 2 (Chuyển từ Hiragana sang Kanji): Từ gạch chân được viết bằng Kanji như thế nào? Chọn 1 đáp án đúng nhất từ 1・2・3・4.",
+              shortLabel: "問題2 (Hiragana → Kanji)",
+              questions: ex.mondai2 || []
+            }
+          ];
+
+    let totalCorrect = 0;
     const wrongKanjiChars = new Set();
+    const sectionScores = activeSections.map((sec) => {
+      let c = 0;
+      if (ex.submitted) {
+        sec.questions.forEach((q) => {
+          if (ex.userAnswers[q.qNumber] === q.answer) {
+            c++;
+            totalCorrect++;
+          } else {
+            wrongKanjiChars.add(q.kanjiChar);
+          }
+        });
+      }
+      return { label: sec.shortLabel || "問題", correct: c, total: sec.questions.length };
+    });
 
-    if (ex.submitted) {
-      ex.mondai1.forEach((q) => {
-        if (ex.userAnswers[q.qNumber] === q.answer) m1Correct++;
-        else wrongKanjiChars.add(q.kanjiChar);
-      });
-      ex.mondai2.forEach((q) => {
-        if (ex.userAnswers[q.qNumber] === q.answer) m2Correct++;
-        else wrongKanjiChars.add(q.kanjiChar);
-      });
-    }
-    const totalCorrect = m1Correct + m2Correct;
-    const score100 = Math.round((totalCorrect / totalQ) * 100);
+    const score100 = totalQ > 0 ? Math.round((totalCorrect / totalQ) * 100) : 0;
+    const stampText = ex.examStamp || "日本語能力試験 N4 • 文字・語彙";
 
     return `
       <div class="jlpt-exam-container">
@@ -2637,7 +3377,7 @@
         <div class="jlpt-exam-header">
           <div class="jlpt-exam-toprow">
             <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-              <span class="jlpt-level-stamp">日本語能力試験 N4 • 文字・語彙</span>
+              <span class="jlpt-level-stamp">${escapeHtml(stampText)}</span>
               <div>
                 <h2 style="font-size:20px;font-weight:800">${escapeHtml(ex.title)} — Đề số ${ex.setNumber}</h2>
                 <div style="font-size:12.5px;color:var(--success);font-weight:700;margin-top:2px">
@@ -2655,6 +3395,8 @@
                       ? `ch-${ex.chapterId}`
                       : ex.baseType === "checkpoint"
                       ? ex.cpId
+                      : ex.baseType === "custom-kanji"
+                      ? ex.examKey.replace(/-set-\d+$/, "")
                       : `custom-${ex.chapterIds.join("-")}`;
                   const h = userState.testHistory && userState.testHistory[`${keyPrefix}-set-${sNum}`];
                   return `
@@ -2673,9 +3415,14 @@
 
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px">
             <div style="font-size:13px;color:var(--text-secondary)">
-              Cấu trúc chuẩn JLPT: <strong>問題1 (Kanji → Hiragana: ${ex.mondai1.length} câu)</strong> + <strong>問題2 (Hiragana → Kanji: ${ex.mondai2.length} câu)</strong>
+              Cấu trúc đề: ${activeSections.map((s) => `<strong>${escapeHtml(s.shortLabel)} (${s.questions.length} câu)</strong>`).join(" + ")}
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              ${
+                ex.baseType === "custom-kanji"
+                  ? `<button class="filter-chip" onclick="window.switchView('custom-practice')">⚙️ Đổi Bài / Kanji / Kỳ thi khác</button>`
+                  : ""
+              }
               <button class="filter-chip ${!ex.instantFeedback ? "active" : ""}" onclick="if(ex.instantFeedback) window.toggleJlptExamMode()">
                 📋 Làm cả đề rồi nộp (Thi thật)
               </button>
@@ -2693,20 +3440,23 @@
           <div class="surface-card" style="border:2px solid var(--primary);text-align:center;padding:24px">
             <div style="font-size:42px;margin-bottom:6px">${score100 >= 80 ? "🏆" : score100 >= 60 ? "🎉" : "💪"}</div>
             <h3 style="font-size:22px;font-weight:800">Kết Quả Đề Số ${ex.setNumber}: ${totalCorrect} / ${totalQ} câu (${score100}/100 điểm)</h3>
-            <div style="display:flex;justify-content:center;gap:16px;margin:12px 0;flex-wrap:wrap;font-size:14px;font-weight:700">
-              <span style="padding:6px 14px;background:var(--bg-subtle);border-radius:8px">
-                問題1 (Kanji → Hiragana): <strong style="color:var(--primary)">${m1Correct} / ${ex.mondai1.length}</strong>
-              </span>
-              <span style="padding:6px 14px;background:var(--bg-subtle);border-radius:8px">
-                問題2 (Hiragana → Kanji): <strong style="color:var(--accent-indigo)">${m2Correct} / ${ex.mondai2.length}</strong>
-              </span>
+            <div style="display:flex;justify-content:center;gap:12px;margin:12px 0;flex-wrap:wrap;font-size:13.5px;font-weight:700">
+              ${sectionScores
+                .map(
+                  (sc) => `
+                <span style="padding:6px 14px;background:var(--bg-subtle);border-radius:8px">
+                  ${escapeHtml(sc.label)}: <strong style="color:var(--primary)">${sc.correct} / ${sc.total}</strong>
+                </span>
+              `
+                )
+                .join("")}
             </div>
             ${
               wrongKanjiChars.size > 0
                 ? `<p style="font-size:13px;color:var(--danger);font-weight:600;margin-bottom:14px">
                     ⚠️ Đã lưu ${wrongKanjiChars.size} chữ Kanji bạn làm sai/bỏ trống vào <strong>Sổ tay ôn tập</strong>. Xem chi tiết đáp án bên dưới!
                   </p>`
-                : `<p style="font-size:14px;color:var(--success);font-weight:700;margin-bottom:14px">🌟 Tuyệt vời! Bạn đã trả lời đúng tuyệt đối cả 2 phần Mondai!</p>`
+                : `<p style="font-size:14px;color:var(--success);font-weight:700;margin-bottom:14px">🌟 Tuyệt vời! Bạn đã trả lời đúng tuyệt đối toàn bộ các phần trong đề!</p>`
             }
             <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
               <button class="btn btn-secondary" onclick="window.retryCurrentJlptExam()">🔄 Làm lại Đề số ${ex.setNumber}</button>
@@ -2728,6 +3478,10 @@
                             🔥 Làm tiếp Test JLPT Chương ${ex.chapterId} (Đề 1) →
                           </button>`;
                     })()
+                  : ex.baseType === "custom-kanji"
+                  ? `<button class="btn btn-primary" onclick="window.switchView('custom-practice')">
+                      🎛️ Chọn tiếp Bài / Chữ Kanji khác
+                    </button>`
                   : `<button class="btn btn-primary" onclick="window.switchView('checkpoints')">
                       🏆 Về Danh sách Bộ đề JLPT
                     </button>`
@@ -2745,23 +3499,20 @@
             : ""
         }
 
-        <!-- MONDAI 1: KANJI -> HIRAGANA -->
-        <div class="jlpt-mondai-box">
-          <div class="jlpt-mondai-banner">
-            <div class="jm-jp">問題1　<u>　　　</u>のことばは ひらがなで どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。</div>
-            <div class="jm-vi">Phần 1 (Chuyển từ Kanji sang Hiragana): Từ gạch chân được đọc bằng Hiragana như thế nào? Chọn 1 đáp án đúng nhất từ 1・2・3・4.</div>
+        <!-- RENDER ALL EXAM SECTIONS -->
+        ${activeSections
+          .map(
+            (sec) => `
+          <div class="jlpt-mondai-box">
+            <div class="jlpt-mondai-banner">
+              <div class="jm-jp">${sec.titleJp}</div>
+              <div class="jm-vi">${escapeHtml(sec.titleVi)}</div>
+            </div>
+            ${sec.questions.map((q) => renderJlptQuestionBlock(q, ex)).join("")}
           </div>
-          ${ex.mondai1.map((q) => renderJlptQuestionBlock(q, ex)).join("")}
-        </div>
-
-        <!-- MONDAI 2: HIRAGANA -> KANJI -->
-        <div class="jlpt-mondai-box">
-          <div class="jlpt-mondai-banner">
-            <div class="jm-jp">問題2　<u>　　　</u>のことばは どう かきますか。１・２・３・４から いちばん いい ものを ひとつ えらんで ください。</div>
-            <div class="jm-vi">Phần 2 (Chuyển từ Hiragana sang Kanji): Từ gạch chân được viết bằng Kanji như thế nào? Chọn 1 đáp án đúng nhất từ 1・2・3・4.</div>
-          </div>
-          ${ex.mondai2.map((q) => renderJlptQuestionBlock(q, ex)).join("")}
-        </div>
+        `
+          )
+          .join("")}
 
         <!-- STICKY SUBMIT BAR -->
         ${
@@ -2769,8 +3520,8 @@
             ? `
           <div class="jlpt-sticky-submit">
             <div>
-              <strong style="font-size:15px">Tiến độ làm bài: <span style="color:var(--primary)">${answeredCount} / ${totalQ}</span> câu đã chọn</strong>
-              <div style="font-size:12px;color:var(--text-muted)">問題1: ${ex.mondai1.length} câu • 問題2: ${ex.mondai2.length} câu</div>
+              <strong style="font-size:15px">Tiến độ làm bài: <span style="color:var(--primary)">${answeredCount} / ${totalQ}</span> câu đã làm</strong>
+              <div style="font-size:12px;color:var(--text-muted)">${activeSections.map((s) => `${escapeHtml(s.shortLabel)}: ${s.questions.length} câu`).join(" • ")}</div>
             </div>
             <div style="display:flex;gap:10px">
               <button class="btn btn-secondary" onclick="window.retryCurrentJlptExam()">Xóa chọn lại</button>
@@ -3083,32 +3834,256 @@
         </div>
       </div>
 
-      <!-- PART 4: CUSTOM TEST BUILDER -->
-      <div class="surface-card" style="border:2px solid var(--accent-indigo)">
-        <h3 style="font-size:17px;font-weight:800;margin-bottom:10px">⚙️ Phần 4: Tự Tạo Bộ 3 Đề JLPT Theo Các Chương Đã Học</h3>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px">
-          ${CHAPTERS.map(
-            (ch) => `
-            <label style="display:flex;align-items:center;gap:6px;background:var(--bg-subtle);padding:6px 12px;border-radius:8px;border:1px solid var(--border-color);cursor:pointer;font-size:13px;font-weight:600">
-              <input type="checkbox" class="custom-ch-checkbox" value="${ch.id}" ${ch.id <= 2 ? "checked" : ""} />
-              ${ch.icon} Chương ${ch.id}
-            </label>
-          `
-          ).join("")}
+      <!-- PART 4: CUSTOM LESSON & KANJI MULTI-EXAM BUILDER -->
+      ${renderCustomPracticeStudioView(true)}
+    `;
+  }
+
+  // VIEW 3B: CUSTOM PRACTICE STUDIO (CHỌN BÀI / CHỌN KANJI & ĐA KỲ THI: JLPT, NAT-TEST, JBT/J.TEST, TOPJ)
+  function renderCustomPracticeStudioView(isEmbedded = false) {
+    const selectedPool = ALL_KANJI.filter((k) => customSelectorState.selectedKanjiSet.has(k.char));
+    const totalVocabCount = selectedPool.reduce((sum, k) => sum + getKanjiWords(k).length, 0);
+    const activeLessonIds = [];
+    CHAPTERS.forEach((ch) => {
+      ch.lessons.forEach((l) => {
+        const allIn = l.kanjiList.every((k) => customSelectorState.selectedKanjiSet.has(k.char));
+        const someIn = l.kanjiList.some((k) => customSelectorState.selectedKanjiSet.has(k.char));
+        if (allIn) activeLessonIds.push(`Bài ${l.id}`);
+        else if (someIn) activeLessonIds.push(`Bài ${l.id} (một phần)`);
+      });
+    });
+
+    const curFormat = EXAM_FORMATS[customSelectorState.examFormat] || EXAM_FORMATS.JLPT;
+    const selectedChars = selectedPool.map((k) => k.char);
+    const hashShort = stringHashSeed(selectedChars.join("")) % 100000;
+
+    return `
+      <div class="surface-card" style="margin-bottom:20px;border:2px solid var(--accent-indigo)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:16px">
+          <div>
+            <span class="chapter-tag" style="background:var(--accent-indigo-soft);color:var(--accent-indigo);margin-bottom:6px">
+              🎛️ PHÒNG LUYỆN ĐỀ TỰ CHỌN BÀI & KANJI ĐA KỲ THI
+            </span>
+            <h2 style="font-size:${isEmbedded ? "19px" : "22px"};font-weight:800;margin-bottom:4px">
+              Tự Chọn Bài Học / Từng Chữ Kanji & Luyện Thi Đa Định Dạng
+            </h2>
+            <p style="font-size:13.5px;color:var(--text-secondary)">
+              Chọn bất kỳ tổ hợp <strong>Bài học</strong> (VD: <em>Bài 1, 2 Chương 1 + Bài 1, 2 Chương 2</em>) hoặc <strong>từng chữ Kanji rời rạc</strong>, sau đó chọn chuẩn đề thi: <strong>JLPT N4, NAT-TEST 4Q, JBT / J.TEST, JPT / TOPJ</strong>.
+            </p>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="filter-chip" onclick="window.applyCustomPreset('example-12-12')" title="Chọn mẫu Bài 1, 2 Chương 1 + Bài 1, 2 Chương 2">
+              🎯 Mẫu: Bài 1, 2 Ch.1 + Bài 1, 2 Ch.2
+            </button>
+            <button class="filter-chip" onclick="window.applyCustomPreset('all')">
+              ☑️ Chọn tất cả (209 chữ)
+            </button>
+            <button class="filter-chip" onclick="window.applyCustomPreset('mastered')">
+              ✅ Đã thuộc
+            </button>
+            <button class="filter-chip" onclick="window.applyCustomPreset('starred')">
+              ⭐ Đánh dấu sao
+            </button>
+            <button class="filter-chip" onclick="window.applyCustomPreset('mistakes')">
+              ⚠️ Hay làm sai
+            </button>
+            <button class="filter-chip" onclick="window.applyCustomPreset('none')" style="color:var(--primary)">
+              🗑️ Bỏ chọn hết
+            </button>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-          <label style="font-size:13px;font-weight:600">
-            Tổng số câu (chia đều 問題1 & 問題2):
-            <select id="customQuizCountSelect" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border-color);margin-left:6px">
-              <option value="20" selected>20 câu (10 + 10)</option>
-              <option value="30">30 câu (15 + 15)</option>
-              <option value="40">40 câu (20 + 20)</option>
-            </select>
-          </label>
-          <div class="exam-set-buttons">
-            <button class="btn btn-indigo" onclick="window.startCustomCheckpointQuiz(1)">🚀 Mở Đề Tùy Chỉnh Số 1</button>
-            <button class="btn btn-secondary" onclick="window.startCustomCheckpointQuiz(2)">📄 Đề Số 2</button>
-            <button class="btn btn-secondary" onclick="window.startCustomCheckpointQuiz(3)">📄 Đề Số 3</button>
+
+        <!-- STEP 1: CHOOSE EXAM FORMAT (JLPT / NAT-TEST / JBT / TOPJ / ALL) -->
+        <div style="margin-bottom:18px">
+          <div style="font-size:13.5px;font-weight:800;margin-bottom:8px;color:var(--text-main)">
+            1️⃣ Chọn Hệ Thống Đề Thi Tiếng Nhật (Mỗi kỳ thi có cấu trúc câu hỏi & bẫy đặc trưng riêng):
+          </div>
+          <div class="exam-format-grid">
+            ${Object.values(EXAM_FORMATS)
+              .map((fmt) => {
+                const isAct = customSelectorState.examFormat === fmt.id;
+                return `
+                  <div class="exam-format-card ${isAct ? "active" : ""}" onclick="window.setCustomExamFormat('${fmt.id}')">
+                    <div class="exam-format-badge" style="background:var(--primary-soft);color:var(--primary)">
+                      ${escapeHtml(fmt.badge)}
+                    </div>
+                    <div class="exam-format-title">${escapeHtml(fmt.title)}</div>
+                    <div class="exam-format-desc">${escapeHtml(fmt.desc)}</div>
+                  </div>
+                `;
+              })
+              .join("")}
+          </div>
+        </div>
+
+        <!-- STEP 2: QUESTION COUNT & QUICK LAUNCH BAR -->
+        <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
+          <div>
+            <div style="font-size:14px;font-weight:800;color:var(--text-main)">
+              📌 Đang chọn: <span style="color:var(--primary)">${selectedPool.length} chữ Kanji</span>
+              <span style="color:var(--text-muted);font-weight:600">(${totalVocabCount} từ vựng N4/N5)</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">
+              ${
+                activeLessonIds.length > 0
+                  ? `Các bài đang chọn: <strong>${escapeHtml(activeLessonIds.slice(0, 8).join(", "))}${activeLessonIds.length > 8 ? ` (+${activeLessonIds.length - 8} bài nữa)` : ""}</strong>`
+                  : `<span style="color:var(--primary)">⚠️ Chưa chọn chữ Kanji nào. Hãy bấm vào Bài học hoặc từng chữ Kanji bên dưới!</span>`
+              }
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <label style="font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px">
+              Số câu / đề:
+              <select onchange="window.setCustomQuestionCount(this.value)" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border-color);font-weight:700;background:var(--bg-surface);color:var(--text-main)">
+                ${[15, 20, 30, 40]
+                  .map(
+                    (cnt) =>
+                      `<option value="${cnt}" ${customSelectorState.questionCount === cnt ? "selected" : ""}>${cnt} câu</option>`
+                  )
+                  .join("")}
+              </select>
+            </label>
+
+            <div class="exam-set-buttons">
+              ${[1, 2, 3]
+                .map((sNum) => {
+                  const testId = `custom-${curFormat.id}-${hashShort}-set-${sNum}`;
+                  const h = userState.testHistory && userState.testHistory[testId];
+                  return `
+                    <button class="exam-set-btn ${h ? "completed" : ""}" onclick="window.startSelectedKanjiExam(${sNum})" ${selectedPool.length === 0 ? "disabled style='opacity:0.5;cursor:not-allowed'" : ""}>
+                      <span>${escapeHtml(curFormat.badge)} • Đề ${sNum}</span>
+                      ${h ? `<span>✅ ${h.bestScore}/${h.total}</span>` : `<span style="opacity:0.75">(${customSelectorState.questionCount}c)</span>`}
+                    </button>
+                  `;
+                })
+                .join("")}
+            </div>
+          </div>
+        </div>
+
+        <!-- EXTRA QUICK MODES (TYPING & RAPID QUIZ) -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:18px;padding:0 4px">
+          <div style="font-size:12.5px;color:var(--text-secondary)">
+            💡 <strong>Cam kết không trùng lặp:</strong> Đề số 1, Đề số 2 và Đề số 3 tự động chia từ vựng độc lập từ đúng <strong>${selectedPool.length} chữ Kanji</strong> bạn đã tick.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12.5px" onclick="window.startSelectedKanjiQuickQuiz(true)" ${selectedPool.length === 0 ? "disabled" : ""}>
+              ⌨️ Luyện gõ Hiragana (${selectedPool.length} chữ đã chọn)
+            </button>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:12.5px" onclick="window.startSelectedKanjiQuickQuiz(false)" ${selectedPool.length === 0 ? "disabled" : ""}>
+              🎯 Trắc nghiệm phản xạ nhanh
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 3: GRANULAR CHAPTER / LESSON / INDIVIDUAL KANJI SELECTOR -->
+        <div style="font-size:13.5px;font-weight:800;margin-bottom:10px;color:var(--text-main)">
+          2️⃣ Tick chọn cả Chương, cả Bài học hoặc bấm từng chữ Kanji muốn luyện tập:
+        </div>
+
+        <div>
+          ${CHAPTERS.map((ch) => {
+            const chKanji = ch.lessons.flatMap((l) => l.kanjiList);
+            const selectedInCh = chKanji.filter((k) => customSelectorState.selectedKanjiSet.has(k.char)).length;
+            const allChSelected = selectedInCh === chKanji.length && chKanji.length > 0;
+            const someChSelected = selectedInCh > 0 && !allChSelected;
+
+            return `
+              <div class="selector-chapter-block">
+                <div class="selector-chapter-header" onclick="window.toggleCustomChapter(${ch.id})">
+                  <div style="display:flex;align-items:center;gap:10px">
+                    <input
+                      type="checkbox"
+                      ${allChSelected ? "checked" : ""}
+                      ${someChSelected ? "data-partial='true'" : ""}
+                      onclick="event.stopPropagation(); window.toggleCustomChapter(${ch.id})"
+                      style="width:17px;height:17px;accent-color:var(--primary);cursor:pointer"
+                    />
+                    <span style="font-size:15px;font-weight:800">
+                      ${ch.icon} ${escapeHtml(ch.titleVi)}
+                      <span class="jp-font" style="color:var(--text-muted);font-weight:500;font-size:13px">(${escapeHtml(ch.titleJp)})</span>
+                    </span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span class="lesson-badge" style="${selectedInCh > 0 ? "background:var(--primary-soft);color:var(--primary);border-color:var(--primary)" : ""}">
+                      Đã chọn ${selectedInCh}/${chKanji.length} chữ
+                    </span>
+                  </div>
+                </div>
+
+                <div class="selector-lessons-grid">
+                  ${ch.lessons
+                    .map((l) => {
+                      const selInLesson = l.kanjiList.filter((k) => customSelectorState.selectedKanjiSet.has(k.char)).length;
+                      const allLessonSelected = selInLesson === l.kanjiList.length && l.kanjiList.length > 0;
+                      const partialLesson = selInLesson > 0 && !allLessonSelected;
+
+                      return `
+                        <div class="selector-lesson-box ${allLessonSelected ? "fully-selected" : partialLesson ? "partially-selected" : ""}">
+                          <div class="selector-lesson-top" onclick="window.toggleCustomLesson('${l.id}')">
+                            <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:13px;font-weight:800" onclick="event.stopPropagation()">
+                              <input
+                                type="checkbox"
+                                ${allLessonSelected ? "checked" : ""}
+                                onchange="window.toggleCustomLesson('${l.id}')"
+                                style="width:15px;height:15px;accent-color:var(--primary);cursor:pointer"
+                              />
+                              <span>Bài ${l.id}: ${escapeHtml(l.titleVi)}</span>
+                            </label>
+                            <span style="font-size:11px;font-weight:700;color:${selInLesson > 0 ? "var(--primary)" : "var(--text-muted)"}">
+                              ${selInLesson}/${l.kanjiList.length} chữ
+                            </span>
+                          </div>
+
+                          <div class="selector-kanji-chips">
+                            ${l.kanjiList
+                              .map((k) => {
+                                const isKSelected = customSelectorState.selectedKanjiSet.has(k.char);
+                                return `
+                                  <button
+                                    type="button"
+                                    class="selectable-kanji-btn ${isKSelected ? "selected" : ""}"
+                                    onclick="window.toggleCustomKanji('${k.char}')"
+                                    title="${escapeHtml(k.char)} (${escapeHtml(k.hanViet)}) — ${escapeHtml(k.meaning)} • ${k.words.length} từ vựng"
+                                  >
+                                    <span class="k-char">${k.char}</span>
+                                    <span class="k-hv">${escapeHtml(k.hanViet.split("/")[0])}</span>
+                                  </button>
+                                `;
+                              })
+                              .join("")}
+                          </div>
+                        </div>
+                      `;
+                    })
+                    .join("")}
+                </div>
+              </div>
+            `;
+          }).join("")}
+        </div>
+
+        <!-- STICKY FLOATING LAUNCH BAR -->
+        <div class="custom-launch-bar">
+          <div>
+            <div style="font-weight:800;font-size:14px">
+              Đề thi: <span style="color:var(--primary)">${escapeHtml(curFormat.title)}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-secondary)">
+              Phạm vi: <strong>${selectedPool.length} chữ Kanji</strong> (${totalVocabCount} từ ghép) • <strong>${customSelectorState.questionCount} câu/đề</strong>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="window.startSelectedKanjiExam(1)" ${selectedPool.length === 0 ? "disabled" : ""}>
+              🚀 Làm Đề Số 1
+            </button>
+            <button class="btn btn-indigo" onclick="window.startSelectedKanjiExam(2)" ${selectedPool.length === 0 ? "disabled" : ""}>
+              📄 Làm Đề Số 2
+            </button>
+            <button class="btn btn-secondary" onclick="window.startSelectedKanjiExam(3)" ${selectedPool.length === 0 ? "disabled" : ""}>
+              📄 Làm Đề Số 3
+            </button>
           </div>
         </div>
       </div>
@@ -3365,6 +4340,8 @@
       initWritingCanvas();
     } else if (currentView === "checkpoints") {
       mainEl.innerHTML = renderCheckpointsView();
+    } else if (currentView === "custom-practice") {
+      mainEl.innerHTML = renderCustomPracticeStudioView(false);
     } else if (currentView === "notebook") {
       mainEl.innerHTML = renderNotebookView();
     } else if (currentView === "dictionary") {
@@ -3381,6 +4358,10 @@
     document.getElementById("brandHomeBtn").addEventListener("click", () => window.switchView("dashboard"));
     document.getElementById("navDashboardBtn").addEventListener("click", () => window.switchView("dashboard"));
     document.getElementById("navCheckpointsBtn").addEventListener("click", () => window.switchView("checkpoints"));
+    const navCustomBtn = document.getElementById("navCustomPracticeBtn");
+    if (navCustomBtn) {
+      navCustomBtn.addEventListener("click", () => window.switchView("custom-practice"));
+    }
     document.getElementById("navNotebookBtn").addEventListener("click", () => window.switchView("notebook"));
     document.getElementById("navDictionaryBtn").addEventListener("click", () => window.switchView("dictionary"));
 
