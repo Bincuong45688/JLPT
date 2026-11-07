@@ -4851,10 +4851,303 @@
       ${
         choukaiState.activeMode === "mode1"
           ? renderChoukaiMode1Dictation()
+          : choukaiState.activeMode === "mode2"
+          ? renderChoukaiMode2Mondai4()
           : typeof renderChoukaiOtherModes === "function"
           ? renderChoukaiOtherModes()
           : `<div class="surface-card">Đang tải chế độ luyện nghe...</div>`
       }
+    `;
+  }
+
+  // ============================================================================
+  // CHẾ ĐỘ 2: PHẢN XẠ ĐÁP LỜI KAIWA TỨC THÌ (JLPT CHOUKAI MONDAI 4 — 即時応答)
+  // ============================================================================
+  choukaiState.m2Index = 0;
+  choukaiState.m2Answered = false;
+  choukaiState.m2SelectedIdx = -1;
+  choukaiState.m2Score = 0;
+  choukaiState.m2ShowScript = false;
+  choukaiState.m2ShowHint = false;
+
+  function getFilteredMondai4Pool() {
+    const raw = window.CHOUKAI_MONDAI4 || [];
+    if (choukaiState.chapterFilter === "ALL") return raw;
+    const filtered = raw.filter((item) => String(item.chapterId) === String(choukaiState.chapterFilter));
+    return filtered.length > 0 ? filtered : raw;
+  }
+
+  window.playM2PromptAudio = function (customRate) {
+    const pool = getFilteredMondai4Pool();
+    const item = pool[choukaiState.m2Index % pool.length];
+    if (!item) return;
+    const pitch = item.speakerGender === "M" ? 0.88 : 1.12;
+    window.speakJpWithOptions(item.promptJp, customRate || choukaiState.speechRate, pitch);
+  };
+
+  window.playM2OptionAudio = function (optIdx) {
+    const pool = getFilteredMondai4Pool();
+    const item = pool[choukaiState.m2Index % pool.length];
+    if (!item || !item.options[optIdx]) return;
+    const replyPitch = item.speakerGender === "M" ? 1.12 : 0.88;
+    window.speakJpWithOptions(item.options[optIdx].jp, choukaiState.speechRate, replyPitch);
+  };
+
+  window.playM2FullSequence = function () {
+    if (!("speechSynthesis" in window)) return;
+    const pool = getFilteredMondai4Pool();
+    const item = pool[choukaiState.m2Index % pool.length];
+    if (!item) return;
+    window.speechSynthesis.cancel();
+
+    const rate = choukaiState.speechRate || 0.9;
+    const uPrompt = new SpeechSynthesisUtterance(item.promptJp);
+    uPrompt.lang = "ja-JP";
+    uPrompt.rate = rate;
+    uPrompt.pitch = item.speakerGender === "M" ? 0.88 : 1.12;
+
+    const correctOpt = item.options[item.answerIndex];
+    const uReply = new SpeechSynthesisUtterance(correctOpt ? correctOpt.jp : "");
+    uReply.lang = "ja-JP";
+    uReply.rate = rate;
+    uReply.pitch = item.speakerGender === "M" ? 1.12 : 0.88;
+
+    window.speechSynthesis.speak(uPrompt);
+    window.speechSynthesis.speak(uReply);
+  };
+
+  window.toggleM2Script = function () {
+    choukaiState.m2ShowScript = !choukaiState.m2ShowScript;
+    renderApp();
+  };
+
+  window.toggleM2Hint = function () {
+    choukaiState.m2ShowHint = !choukaiState.m2ShowHint;
+    renderApp();
+  };
+
+  window.selectM2Option = function (optIdx) {
+    if (choukaiState.m2Answered) return;
+    const pool = getFilteredMondai4Pool();
+    const item = pool[choukaiState.m2Index % pool.length];
+    if (!item) return;
+    choukaiState.m2Answered = true;
+    choukaiState.m2SelectedIdx = optIdx;
+    if (optIdx === item.answerIndex) {
+      choukaiState.m2Score++;
+    }
+    renderApp();
+    window.playM2FullSequence();
+  };
+
+  window.nextM2Question = function (dir) {
+    const pool = getFilteredMondai4Pool();
+    if (pool.length === 0) return;
+    const step = dir || 1;
+    choukaiState.m2Index = (choukaiState.m2Index + step + pool.length) % pool.length;
+    choukaiState.m2Answered = false;
+    choukaiState.m2SelectedIdx = -1;
+    choukaiState.m2ShowScript = false;
+    choukaiState.m2ShowHint = false;
+    renderApp();
+    window.playM2PromptAudio();
+  };
+
+  function renderChoukaiMode2Mondai4() {
+    const pool = getFilteredMondai4Pool();
+    if (pool.length === 0) {
+      return `<div class="surface-card">Chưa có dữ liệu Mondai 4.</div>`;
+    }
+    const idx = choukaiState.m2Index % pool.length;
+    const item = pool[idx];
+    const showText = choukaiState.m2Answered || choukaiState.m2ShowScript;
+    const isCorrect = choukaiState.m2SelectedIdx === item.answerIndex;
+
+    return `
+      <div class="surface-card" style="border:2px solid var(--accent-indigo)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <span class="chapter-tag" style="background:var(--accent-indigo-soft);color:var(--accent-indigo);margin-bottom:4px">
+              ⚡ CHẾ ĐỘ 2: PHẢN XẠ ĐÁP LỜI TỨC THÌ (JLPT MONDAI 4 — 即時応答)
+            </span>
+            <h3 style="font-size:18px;font-weight:800">
+              Nghe 1 câu giao tiếp thực tế & Chọn lời đáp tự nhiên nhất trong 3 lựa chọn
+            </h3>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="lesson-badge">Tình huống ${idx + 1} / ${pool.length} (Chương ${item.chapterId} • Bài ${item.lessonId})</span>
+            <span class="lesson-badge" style="color:var(--success)">Đúng: ${choukaiState.m2Score} câu</span>
+          </div>
+        </div>
+
+        <!-- AUDIO STAGE FOR MONDAI 4 -->
+        <div class="choukai-audio-stage">
+          <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+            <button class="audio-play-hero-btn" onclick="window.playM2PromptAudio()">
+              🔊 Nghe Câu Nói Của Đối Phương (${item.speakerGender === "M" ? "👨 Nam" : "👩 Nữ"} • ${choukaiState.speechRate}x)
+            </button>
+            <button class="btn btn-secondary" onclick="window.playM2PromptAudio(0.75)">
+              🐢 Nghe Chậm (0.75x)
+            </button>
+          </div>
+
+          <div class="dialogue-box" style="max-width:740px;margin:0 auto">
+            <div class="dialogue-turn">
+              <div class="dialogue-avatar ${item.speakerGender === "M" ? "male" : "female"}">
+                ${item.speakerGender === "M" ? "👨" : "👩"}
+              </div>
+              <div style="flex:1">
+                <div style="font-size:12px;font-weight:700;color:var(--text-muted);margin-bottom:4px">
+                  Người nói A (${item.speakerGender === "M" ? "Giọng Nam" : "Giọng Nữ"})
+                </div>
+                ${
+                  showText
+                    ? `
+                      <div class="jp-font" style="font-size:18px;font-weight:800;color:var(--text-main)">
+                        「${escapeHtml(item.promptJp)}」
+                      </div>
+                      <div class="jp-font" style="font-size:13.5px;color:var(--primary);margin-top:2px">
+                        ${escapeHtml(item.promptHira)}
+                      </div>
+                      ${
+                        choukaiState.m2Answered
+                          ? `<div style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                              🇻🇳 <em>${escapeHtml(item.promptVi)}</em>
+                            </div>`
+                          : ""
+                      }
+                    `
+                    : `
+                      <div style="font-size:15px;color:var(--text-secondary);padding:6px 0">
+                        🙈 <strong>Đang ẩn Script câu hỏi</strong> (Chuẩn phòng thi Mondai 4 — Hãy bấm nút 🔊 phía trên để nghe!)
+                      </div>
+                    `
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- TOGGLE SCRIPT & HINT -->
+          <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:12px">
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m2ShowScript ? "active" : ""}"
+              onclick="window.toggleM2Script()"
+            >
+              ${choukaiState.m2ShowScript ? "🙈 Ẩn chữ tiếng Nhật" : "👁️ Hiện chữ tiếng Nhật (Nếu nghe chưa rõ)"}
+            </button>
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m2ShowHint ? "active" : ""}"
+              onclick="window.toggleM2Hint()"
+            >
+              ${choukaiState.m2ShowHint ? "🙈 Ẩn gợi ý tình huống" : "💡 Hiện gợi ý tình huống"}
+            </button>
+          </div>
+
+          ${
+            choukaiState.m2ShowHint
+              ? `
+                <div style="margin-top:10px">
+                  <span class="jlpt-hint-badge">
+                    💡 Bối cảnh: <strong>${escapeHtml(item.situationVi)}</strong>
+                  </span>
+                </div>
+              `
+              : ""
+          }
+        </div>
+
+        <!-- 3 RESPONSE OPTIONS (1・2・3) -->
+        <div style="font-size:13.5px;font-weight:800;margin-bottom:10px;color:var(--text-main)">
+          👇 Chọn câu đáp lại (Kaiwa) tự nhiên nhất (Bấm 🔊 ở từng câu để nghe phát âm của đáp án đó):
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+          ${item.options
+            .map((opt, oIdx) => {
+              let cls = "jlpt-choice-btn";
+              if (choukaiState.m2Answered) {
+                if (oIdx === item.answerIndex) cls += " correct";
+                else if (oIdx === choukaiState.m2SelectedIdx) cls += " wrong";
+              }
+              return `
+                <div style="display:flex;gap:8px;align-items:stretch">
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    style="padding:0 14px;flex-shrink:0"
+                    onclick="window.playM2OptionAudio(${oIdx})"
+                    title="Nghe phát âm đáp án ${oIdx + 1}"
+                  >
+                    🔊 Nghe ${oIdx + 1}
+                  </button>
+                  <button
+                    type="button"
+                    class="${cls}"
+                    style="flex:1;justify-content:flex-start;padding:12px 16px"
+                    ${choukaiState.m2Answered ? "disabled" : ""}
+                    onclick="window.selectM2Option(${oIdx})"
+                  >
+                    <span class="jlpt-choice-num">${oIdx + 1}</span>
+                    <div style="text-align:left">
+                      ${
+                        showText
+                          ? `
+                            <div class="jp-font" style="font-size:16px;font-weight:800">${escapeHtml(opt.jp)}</div>
+                            <div class="jp-font" style="font-size:12.5px;color:var(--text-secondary)">${escapeHtml(opt.hira)}</div>
+                            ${
+                              choukaiState.m2Answered
+                                ? `<div style="font-size:12.5px;color:var(--text-muted);margin-top:3px">🇻🇳 ${escapeHtml(opt.vi)}</div>`
+                                : ""
+                            }
+                          `
+                          : `<span style="font-size:14.5px;color:var(--text-secondary)">Đáp án số ${oIdx + 1} (Bấm 🔊 bên trái để nghe hoặc chọn đáp án)</span>`
+                      }
+                    </div>
+                  </button>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+
+        <!-- EXPLANATION & KAIWA TIP BOX -->
+        ${
+          choukaiState.m2Answered
+            ? `
+              <div class="jlpt-explain-bar ${isCorrect ? "ok" : "err"}" style="margin-left:0">
+                <div>
+                  <div style="font-size:15px;margin-bottom:6px">
+                    ${
+                      isCorrect
+                        ? "✅ <strong>Phản xạ Kaiwa rất tự nhiên!</strong>"
+                        : `❌ <strong>Chưa đúng ngữ cảnh</strong> (Bạn chọn đáp án ${choukaiState.m2SelectedIdx + 1}, đáp án đúng là <strong>${item.answerIndex + 1}</strong>)`
+                    }
+                  </div>
+                  <div style="font-size:13.5px;color:var(--text-main);line-height:1.55">
+                    💡 <strong>Điểm Ngữ pháp / Khẩu ngữ Kaiwa & Choukai N4 cần nhớ:</strong><br/>
+                    ${escapeHtml(item.kaiwaTip)}
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+                  <button class="btn btn-indigo" onclick="window.playM2FullSequence()">
+                    🗣️ Nghe A ↔ B để Nhại Theo (Shadowing)
+                  </button>
+                  <button class="btn btn-primary" onclick="window.nextM2Question(1)">
+                    Tình huống tiếp theo →
+                  </button>
+                </div>
+              </div>
+            `
+            : `
+              <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button class="btn btn-secondary" onclick="window.nextM2Question(-1)">← Tình huống trước</button>
+                <button class="btn btn-secondary" onclick="window.nextM2Question(1)">Bỏ qua / Tình huống tiếp →</button>
+              </div>
+            `
+        }
+      </div>
     `;
   }
 
