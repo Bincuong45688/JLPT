@@ -801,3 +801,268 @@ window.CHOUKAI_DIALOGUES = [
     answerIndex: 0
   }
 ];
+
+
+// ============================================================================
+// CHẾ ĐỘ 4: ĐÓNG VAI KAIWA TÌNH HUỐNG & SỔ TAY RÚT GỌN KHẨU NGỮ / BẪY CHOUKAI
+// ============================================================================
+window.CHOUKAI_ROLEPLAYS = [
+  {
+    id: "rp-1",
+    chapterId: 1,
+    titleVi: "Tình huống 1: Xin đổi lịch họp tại công ty (Chương 1 • Công việc)",
+    contextVi: "Bạn (Vai B) cần xin phép Trưởng phòng (Vai A) lùi cuộc họp chiều nay từ 2 giờ sang 3 giờ vì tài liệu chưa chuẩn bị kịp.",
+    lines: [
+      {
+        role: "A",
+        speaker: "M",
+        label: "部長 (Trưởng phòng - Máy nói)",
+        jp: "リンさん、今日の 午後2時からの 会議だけど、資料の 用意は もう できた？",
+        hira: "りんさん、きょうの ごご にじからの かいぎだけど、しりょうの よういは もう できた？",
+        vi: "Bạn Linh ơi, về cuộc họp từ 2 giờ chiều nay, tài liệu đã chuẩn bị xong chưa?"
+      },
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B — Hãy tự nói bằng tiếng Nhật theo gợi ý trước khi mở đáp án)",
+        cueVi: "Hãy nói: 'Xin lỗi Trưởng phòng, thật ra (実は) dữ liệu vẫn chưa xong, có thể đổi cuộc họp sang 3 giờ được không ạ?'",
+        keywords: "実は（じつは） • 資料（しりょう） • 3時に 変えても いいですか",
+        jp: "すみません、実は まだ 資料が 終わって いなくて、会議を 3時に 変えて いただけませんか。",
+        hira: "すみません、じつは まだ しりょうが おわって いなくて、かいぎを さんじに かえて いただけませんか。",
+        vi: "Xin lỗi Trưởng phòng, thật ra tài liệu vẫn chưa xong, có thể đổi cuộc họp sang 3 giờ giúp tôi được không ạ?"
+      },
+      {
+        role: "A",
+        speaker: "M",
+        label: "部長 (Trưởng phòng - Máy nói)",
+        jp: "そうか。3時からなら 大丈夫だよ。じゃあ、みんなに 連絡して おいてね。",
+        hira: "そうか。さんじからなら だいじょうぶだよ。じゃあ、みんなに れんらくして おいてね。",
+        vi: "Vậy à. Từ 3 giờ thì vẫn ổn đấy. Vậy nhớ liên lạc báo trước cho mọi người nhé."
+      },
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy nói: 'Vâng, tôi hiểu rồi ạ. Tôi sẽ báo cho mọi người ngay bây giờ!'",
+        keywords: "かしこまりました / わかりました • すぐ 知らせます",
+        jp: "はい、わかりました。すぐ みんなに 知らせて おきます。",
+        hira: "はい、わかりました。すぐ みんなに しらせて おきます。",
+        vi: "Vâng, tôi hiểu rồi ạ. Tôi sẽ báo sẵn cho mọi người ngay."
+      }
+    ]
+  },
+  {
+    id: "rp-2",
+    chapterId: 2,
+    titleVi: "Tình huống 2: Đổi món hàng bị lỗi ở cửa hàng (Chương 2 • Mua sắm)",
+    contextVi: "Bạn (Vai B) mua một chiếc đồng hồ/áo hôm qua nhưng bị hỏng/nhầm cỡ, mang hóa đơn (レシート) ra cửa hàng xin đổi.",
+    lines: [
+      {
+        role: "A",
+        speaker: "F",
+        label: "店員 (Nhân viên - Máy nói)",
+        jp: "いらっしゃいませ。いかが なさいましたか。",
+        hira: "いらっしゃいませ。いかが なさいましたか。",
+        vi: "Xin kính chào quý khách. Quý khách cần giúp gì ạ?"
+      },
+      {
+        role: "B",
+        speaker: "M",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy nói: 'Xin lỗi, chiếc áo tôi mua hôm qua hơi nhỏ, tôi có thể đổi sang cỡ lớn hơn được không?'",
+        keywords: "きのう 買った シャツ • 少し 小さい • 取り替える（とりかえる）",
+        jp: "すみません、きのう 買った この シャツなんですが、少し 小さかったので、大きい サイズと 取り替えて もらえますか。",
+        hira: "すみません、きのう かった この しゃつなんですが、すこし ちいさかったので、おおきい さいずと とりかえて もらえますか。",
+        vi: "Xin lỗi, chiếc áo sơ mi này tôi mua hôm qua hơi nhỏ, có thể đổi sang cỡ lớn hơn giúp tôi được không ạ?"
+      },
+      {
+        role: "A",
+        speaker: "F",
+        label: "店員 (Nhân viên - Máy nói)",
+        jp: "かしこまりました。お買い上げの ときの レシートは お持ちですか。",
+        hira: "かしこまりました。おかいあげの ときの れしーとは おもちですか。",
+        vi: "Tôi hiểu rồi ạ. Quý khách có mang theo hóa đơn lúc mua hàng không ạ?"
+      },
+      {
+        role: "B",
+        speaker: "M",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy nói: 'Vâng, hóa đơn đây ạ. Xin cảm ơn!'",
+        keywords: "はい、これです • お願いします",
+        jp: "はい、ここに あります。よろしく お願いします。",
+        hira: "はい、ここに あります。よろしく おねがいします。",
+        vi: "Vâng, có ở đây ạ. Nhờ chị giúp tôi nhé."
+      }
+    ]
+  },
+  {
+    id: "rp-3",
+    chapterId: 5,
+    titleVi: "Tình huống 3: Hỏi đường và chuyến tàu ở nhà ga (Chương 5 • Giao thông)",
+    contextVi: "Bạn (Vai B) đang ở ga Tokyo và muốn hỏi nhân viên nhà ga (Vai A) chuyến tàu nào đi đến ga Sakura nhanh nhất.",
+    lines: [
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B — Bạn chủ động hỏi trước)",
+        cueVi: "Hãy nói: 'Xin lỗi, tôi muốn đến ga Sakura, tôi nên đi chuyến tàu ở sân ga số mấy ạ?'",
+        keywords: "さくら駅へ 行きたいんですが • 何番線の 電車 • 乗れば いいですか",
+        jp: "すみません、さくら駅へ 行きたいんですが、何番線の 電車に 乗れば いいですか。",
+        hira: "すみません、さくらえきへ いきたいんですが、なんばんせんの でんしゃに のれば いいですか。",
+        vi: "Xin lỗi, tôi muốn đi đến ga Sakura thì nên lên tàu ở sân ga số mấy ạ?"
+      },
+      {
+        role: "A",
+        speaker: "M",
+        label: "駅員 (Nhân viên nhà ga - Máy nói)",
+        jp: "さくら駅ですね。2番線の 急行電車に 乗って、みどり駅で 普通電車に 乗り換えて ください。",
+        hira: "さくらえきですね。にばんせんの きゅうこうでんしゃに のって、みどりえきで ふつうでんしゃに のりかえて ください。",
+        vi: "Ga Sakura phải không ạ. Hãy lên tàu tốc hành ở sân ga số 2, rồi đổi sang tàu thường ở ga Midori nhé."
+      },
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy xác nhận lại: 'Đổi tàu ở ga Midori phải không ạ? Mất khoảng bao nhiêu phút ạ?'",
+        keywords: "みどり駅で 乗り換えですね • 何分ぐらい かかりますか",
+        jp: "みどり駅で 乗り換えですね。ぜんぶで 何分ぐらい かかりますか。",
+        hira: "みどりえきで のりかえですね。ぜんぶで なんぷんぐらい かかりますか。",
+        vi: "Đổi tàu ở ga Midori phải không ạ. Tổng cộng mất khoảng bao nhiêu phút ạ?"
+      }
+    ]
+  },
+  {
+    id: "rp-4",
+    chapterId: 7,
+    titleVi: "Tình huống 4: Khám bệnh tại phòng khám ở Nhật (Chương 7 • Bệnh viện)",
+    contextVi: "Bạn (Vai B) bị đau họng và sốt nhẹ từ tối qua nên đến phòng khám gặp Bác sĩ (Vai A).",
+    lines: [
+      {
+        role: "A",
+        speaker: "M",
+        label: "医者 (Bác sĩ - Máy nói)",
+        jp: "今日は どう しましたか。いつから 調子が 悪いんですか。",
+        hira: "きょうは どう しましたか。いつから ちょうしが わるいんですか。",
+        vi: "Hôm nay bạn bị sao thế? Bạn thấy trong người không khỏe từ khi nào?"
+      },
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy nói: 'Từ tối hôm qua tôi bị đau họng và có sốt một chút ạ.'",
+        keywords: "きのうの 夜から • のどが 痛くて • 少し 熱が あります",
+        jp: "きのうの 夜から のどが 痛くて、少し 熱も あるんです。",
+        hira: "きのうの よるから のどが いたくて、すこし ねつも あるんです。",
+        vi: "Từ tối qua tôi bị đau họng và cũng có sốt nhẹ nữa ạ."
+      },
+      {
+        role: "A",
+        speaker: "M",
+        label: "医者 (Bác sĩ - Máy nói)",
+        jp: "そうですか。ちょっと 口を 大きく 開けて 見せて ください。ああ、赤く なって いますね。風邪ですから、薬を 3日分 出して おきますね。",
+        hira: "そうですか。ちょっと くちを おおきく あけて みせて ください。ああ、あかく なって いますね。かぜですから、くすりを みっかぶん だして おきますね。",
+        vi: "Vậy à. Bạn há to miệng cho tôi xem chút nhé. À, bị đỏ lên rồi này. Do cảm cúm nên tôi kê đơn thuốc 3 ngày cho bạn nhé."
+      },
+      {
+        role: "B",
+        speaker: "F",
+        label: "あなた (Bạn đóng vai B)",
+        cueVi: "Hãy nói: 'Vâng, cảm ơn bác sĩ nhiều ạ!'",
+        keywords: "はい、ありがとうございます。お願いします。",
+        jp: "はい、ありがとうございます。よろしく お願いします。",
+        hira: "はい、ありがとうございます。よろしく おねがいします。",
+        vi: "Vâng, xin cảm ơn bác sĩ ạ."
+      }
+    ]
+  }
+];
+
+window.CHOUKAI_COLLOQUIAL_HANDBOOK = [
+  {
+    category: "1. Biến âm Rút gọn Khẩu ngữ N4 (Lý do nghe băng không nhận ra từ quen)",
+    items: [
+      {
+        formal: "〜て しまう / 〜て しまった",
+        casual: "〜ちゃう / 〜ちゃった（〜じゃう / 〜じゃった）",
+        exampleJp: "電車の 中に 傘を 忘れちゃった！",
+        exampleHira: "でんしゃの なかに かさを わすれちゃった！",
+        meaningVi: "Lỡ để quên ô trên tàu điện mất rồi! (Từ 忘れてしまった)",
+        tip: "Âm 「てし」 biến thành 「ちゃ」, âm 「でし」 biến thành 「じゃ」(VD: 飲んでしまった → 飲んじゃった)."
+      },
+      {
+        formal: "〜て おく / 〜て おきます",
+        casual: "〜とく / 〜ときます（〜どく）",
+        exampleJp: "会議までに 資料を コピーしとくね。",
+        exampleHira: "かいぎまでに しりょうを こぴーしとくね。",
+        meaningVi: "Mình sẽ photo sẵn tài liệu trước giờ họp nhé! (Từ コピーしておくね)",
+        tip: "Rất hay xuất hiện trong Choukai Mondai 1 (Chuẩn bị công việc)."
+      },
+      {
+        formal: "〜なければ ならない / 〜なければ いけない",
+        casual: "〜なきゃ / 〜なくちゃ",
+        exampleJp: "もう 8時だ！ 急いで 行かなきゃ！",
+        exampleHira: "もう はちじだ！ いそいで いかなきゃ！",
+        meaningVi: "Đã 8 giờ rồi! Phải đi gấp thôi! (Từ 行かなければならない)",
+        tip: "Khi nghe thấy 「〜なきゃ」 ở cuối câu, đó chính là việc nhân vật BẮT BUỘC PHẢI LÀM."
+      },
+      {
+        formal: "〜て いる / 〜て いく / 〜て くる",
+        casual: "〜てる / 〜てく / 〜てくる（Lược bỏ chữ い）",
+        exampleJp: "駅の 前で 待ってるから、早く 来てね。",
+        exampleHira: "えきの まえで まってるから、はやく きてね。",
+        meaningVi: "Mình đang đợi trước nhà ga nên cậu đến nhanh nhé! (Từ 待っている)",
+        tip: "Trong văn nói tự nhiên, người Nhật hầu như luôn bỏ âm 「い」 trong 「〜ている」."
+      }
+    ]
+  },
+  {
+    category: "2. Cụm từ 'Đổi ý / Lật kèo' báo hiệu Đáp Án Đúng trong Choukai",
+    items: [
+      {
+        formal: "あ、その前に（あ、そのまえに）",
+        casual: "À, nhưng trước khi làm việc đó thì...",
+        exampleJp: "銀行へ 行きます。あ、その前に 郵便局で 切手を 買わなきゃ。",
+        exampleHira: "ぎんこうへ いきます。あ、そのまえに ゆうびんきょくで きってを かわなきゃ。",
+        meaningVi: "Tôi sẽ đi ngân hàng. À, trước đó phải mua tem ở bưu điện đã!",
+        tip: "Nếu câu hỏi có chữ 「まず」(Đầu tiên làm gì), đáp án luôn nằm SAU cụm 「その前に」!"
+      },
+      {
+        formal: "やっぱり / やはり",
+        casual: "Quả nhiên là / Cuối cùng đổi ý chọn lại...",
+        exampleJp: "バスは 遅れそうだから、やっぱり 電車で 行こう。",
+        exampleHira: "ばすは おくれそうだから、やっぱり でんしゃで いこう。",
+        meaningVi: "Xe buýt có vẻ trễ nên thôi quả nhiên mình đi tàu điện đi.",
+        tip: "Khi nhân vật phân vân rồi nói 「やっぱり〜にする」, lựa chọn ngay sau やっぱり là đáp án chốt."
+      },
+      {
+        formal: "それより（Thay vì việc đó thì...）",
+        casual: "Chuyển trọng tâm sang việc quan trọng hơn",
+        exampleJp: "掃除は いいから、それより 先に お茶を 用意して ください。",
+        exampleHira: "そうじは いいから、それより さきに おちゃを よういして ください。",
+        meaningVi: "Việc dọn dẹp chưa cần đâu, thay vào đó hãy chuẩn bị trà trước đi.",
+        tip: "Hành động đứng trước 「それより」 là Bẫy, hành động đứng sau mới là Đáp án."
+      }
+    ]
+  },
+  {
+    category: "3. Cách Từ Chối Khéo của người Nhật trong Kaiwa & Mondai 4",
+    items: [
+      {
+        formal: "ちょっと… / ちょっと 都合が 悪くて…",
+        casual: "Từ chối lịch sự (Hơi bất tiện / Kẹt lịch mất rồi)",
+        exampleJp: "すみません、日曜日は ちょっと 用事が あって…。",
+        exampleHira: "すみません、にちようびは ちょっと ようじが あって…。",
+        meaningVi: "Xin lỗi, Chủ nhật mình hơi bận chút việc mất rồi... (= Không đi được)",
+        tip: "Trong Choukai, 「〜はちょっと…」 với giọng ngập ngừng 100% mang nghĩa TỪ CHỐI (いいえ)."
+      },
+      {
+        formal: "せっかくですが… / あいにく…",
+        casual: "Rất tiếc dù bạn đã có lòng mời...",
+        exampleJp: "せっかくですが、明日は 出張で 東京に いないんです。",
+        exampleHira: "せっかくですが、あしたは しゅっちょうで とうきょうに いないんです。",
+        meaningVi: "Dù bạn đã có lòng rủ nhưng tiếc là mai mình đi công tác không có ở Tokyo.",
+        tip: "Cặp từ lịch sự bậc nhất trong giao tiếp công sở (JBT/JLPT)."
+      }
+    ]
+  }
+];

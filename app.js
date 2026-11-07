@@ -4855,9 +4855,7 @@
           ? renderChoukaiMode2Mondai4()
           : choukaiState.activeMode === "mode3"
           ? renderChoukaiMode3Dialogues()
-          : typeof renderChoukaiOtherModes === "function"
-          ? renderChoukaiOtherModes()
-          : `<div class="surface-card">Đang tải chế độ luyện nghe...</div>`
+          : renderChoukaiMode4Kaiwa()
       }
     `;
   }
@@ -5463,6 +5461,251 @@
               </div>
             `
         }
+      </div>
+    `;
+  }
+
+  // ============================================================================
+  // CHẾ ĐỘ 4: ĐÓNG VAI KAIWA TÌNH HUỐNG (ROLE-PLAY A ↔ B) & SỔ TAY RÚT GỌN KHẨU NGỮ
+  // ============================================================================
+  choukaiState.m4RoleplayIdx = 0;
+  choukaiState.m4RevealedLines = {};
+
+  window.selectM4Roleplay = function (rpIdx) {
+    window.stopChoukaiAudio();
+    choukaiState.m4RoleplayIdx = Number(rpIdx) || 0;
+    choukaiState.m4RevealedLines = {};
+    renderApp();
+  };
+
+  window.toggleM4RoleBLine = function (lineIdx) {
+    choukaiState.m4RevealedLines = choukaiState.m4RevealedLines || {};
+    choukaiState.m4RevealedLines[lineIdx] = !choukaiState.m4RevealedLines[lineIdx];
+    renderApp();
+  };
+
+  window.playM4RoleLine = function (lineIdx) {
+    const rps = window.CHOUKAI_ROLEPLAYS || [];
+    const rp = rps[choukaiState.m4RoleplayIdx % Math.max(rps.length, 1)];
+    if (!rp || !rp.lines[lineIdx]) return;
+    const line = rp.lines[lineIdx];
+    const pitch = line.speaker === "M" ? 0.86 : 1.14;
+    window.speakJpWithOptions(line.jp, choukaiState.speechRate, pitch);
+  };
+
+  window.playM4FullRoleplay = function () {
+    if (!("speechSynthesis" in window)) return;
+    const rps = window.CHOUKAI_ROLEPLAYS || [];
+    const rp = rps[choukaiState.m4RoleplayIdx % Math.max(rps.length, 1)];
+    if (!rp) return;
+    window.speechSynthesis.cancel();
+    const rate = choukaiState.speechRate || 0.9;
+    rp.lines.forEach((line) => {
+      const u = new SpeechSynthesisUtterance(line.jp);
+      u.lang = "ja-JP";
+      u.rate = rate;
+      u.pitch = line.speaker === "M" ? 0.86 : 1.14;
+      window.speechSynthesis.speak(u);
+    });
+  };
+
+  function renderChoukaiMode4Kaiwa() {
+    const rps = window.CHOUKAI_ROLEPLAYS || [];
+    const handbook = window.CHOUKAI_COLLOQUIAL_HANDBOOK || [];
+    const rp = rps[choukaiState.m4RoleplayIdx % Math.max(rps.length, 1)];
+
+    return `
+      <!-- PART 4A: ROLE-PLAY KAIWA STUDIO -->
+      <div class="surface-card" style="margin-bottom:20px;border:2px solid var(--accent-indigo)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <span class="chapter-tag" style="background:var(--accent-indigo-soft);color:var(--accent-indigo);margin-bottom:4px">
+              🗣️ CHẾ ĐỘ 4 (PHẦN 1): LUYỆN ĐÓNG VAI PHẢN XẠ KAIWA (ROLE-PLAY A ↔ B)
+            </span>
+            <h3 style="font-size:18px;font-weight:800">
+              Máy đóng vai A — Bạn tự bật ra câu tiếng Nhật ở vai B rồi đối chiếu giọng chuẩn
+            </h3>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${rps
+              .map(
+                (rItem, idx) => `
+                <button
+                  type="button"
+                  class="filter-chip ${choukaiState.m4RoleplayIdx === idx ? "active" : ""}"
+                  onclick="window.selectM4Roleplay(${idx})"
+                >
+                  🎭 Tình huống ${idx + 1} (Ch.${rItem.chapterId})
+                </button>
+              `
+              )
+              .join("")}
+          </div>
+        </div>
+
+        ${
+          rp
+            ? `
+              <div style="background:var(--bg-subtle);border:1px solid var(--border-color);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+                <div>
+                  <div style="font-weight:800;font-size:15.5px;color:var(--primary)">${escapeHtml(rp.titleVi)}</div>
+                  <div style="font-size:13px;color:var(--text-secondary);margin-top:2px">📌 ${escapeHtml(rp.contextVi)}</div>
+                </div>
+                <button class="btn btn-indigo" onclick="window.playM4FullRoleplay()">
+                  ▶️ Nghe Mẫu Cả Đoạn A ↔ B
+                </button>
+              </div>
+
+              <div class="dialogue-box">
+                ${rp.lines
+                  .map((line, lIdx) => {
+                    const isUserRole = line.role === "B";
+                    const isRevealed = !isUserRole || !!(choukaiState.m4RevealedLines && choukaiState.m4RevealedLines[lIdx]);
+                    return `
+                      <div
+                        class="dialogue-turn"
+                        style="${isUserRole ? "border:2px solid var(--accent-indigo);background:var(--accent-indigo-soft)" : ""}"
+                      >
+                        <div class="dialogue-avatar ${line.speaker === "M" ? "male" : "female"}">
+                          ${isUserRole ? "🎙️" : line.speaker === "M" ? "👨" : "👩"}
+                        </div>
+                        <div style="flex:1">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+                            <strong style="font-size:13px;color:${isUserRole ? "var(--accent-indigo)" : "var(--text-secondary)"}">
+                              ${escapeHtml(line.label)}
+                            </strong>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                              ${
+                                isUserRole
+                                  ? `
+                                    <button
+                                      type="button"
+                                      class="jlpt-hint-btn ${isRevealed ? "active" : ""}"
+                                      onclick="window.toggleM4RoleBLine(${lIdx})"
+                                    >
+                                      ${isRevealed ? "🙈 Ẩn câu mẫu" : "👁️ Mở xem câu mẫu tiếng Nhật"}
+                                    </button>
+                                  `
+                                  : ""
+                              }
+                              <button
+                                type="button"
+                                class="btn btn-secondary"
+                                style="padding:4px 10px;font-size:12px"
+                                onclick="window.playM4RoleLine(${lIdx})"
+                              >
+                                🔊 Nghe câu này
+                              </button>
+                            </div>
+                          </div>
+
+                          ${
+                            isUserRole
+                              ? `
+                                <div style="background:var(--bg-surface);border-radius:8px;padding:8px 12px;margin-bottom:8px;border:1px dashed var(--accent-indigo)">
+                                  <div style="font-size:13px;font-weight:700;color:var(--text-main)">
+                                    🎯 <strong>Nhiệm vụ nói của bạn:</strong> ${escapeHtml(line.cueVi)}
+                                  </div>
+                                  <div style="font-size:12px;color:var(--primary);margin-top:3px" class="jp-font">
+                                    🔑 Từ khóa gợi ý: <strong>${escapeHtml(line.keywords)}</strong>
+                                  </div>
+                                </div>
+                              `
+                              : ""
+                          }
+
+                          ${
+                            isRevealed
+                              ? `
+                                <div class="jp-font" style="font-size:16.5px;font-weight:800;color:var(--text-main)">
+                                  「${escapeHtml(line.jp)}」
+                                </div>
+                                <div class="jp-font" style="font-size:13px;color:var(--primary);margin-top:2px">
+                                  ${escapeHtml(line.hira)}
+                                </div>
+                                <div style="font-size:13px;color:var(--text-secondary);margin-top:3px">
+                                  🇻🇳 ${escapeHtml(line.vi)}
+                                </div>
+                              `
+                              : `
+                                <div style="font-size:13px;color:var(--text-muted);font-style:italic">
+                                  👉 Hãy tự nói thành tiếng bằng tiếng Nhật trước, sau đó bấm <strong>「👁️ Mở xem câu mẫu」</strong> hoặc <strong>「🔊 Nghe câu này」</strong> để kiểm tra!
+                                </div>
+                              `
+                          }
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+            : ""
+        }
+      </div>
+
+      <!-- PART 4B: COLLOQUIAL CONTRACTIONS & CHOUKAI TRAP HANDBOOK -->
+      <div class="surface-card">
+        <span class="chapter-tag" style="margin-bottom:6px">
+          📖 CHẾ ĐỘ 4 (PHẦN 2): CẨM NANG BIẾN ÂM KHẨU NGỮ & TỪ KHÓA LẬT KÈO CHOUKAI N4
+        </span>
+        <h3 style="font-size:18px;font-weight:800;margin-bottom:6px">
+          Bí quyết nghe hiểu văn nói tự nhiên & không bao giờ sập bẫy đề nghe JLPT
+        </h3>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">
+          Bấm nút <strong>🔊 Nghe câu ví dụ</strong> ở từng mục để tai làm quen với tốc độ lướt âm thực tế của người Nhật.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:18px">
+          ${handbook
+            .map(
+              (group) => `
+              <div style="border:1px solid var(--border-color);border-radius:12px;padding:14px 16px;background:var(--bg-subtle)">
+                <h4 style="font-size:15.5px;font-weight:800;color:var(--primary);margin-bottom:12px">
+                  📌 ${escapeHtml(group.category)}
+                </h4>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px">
+                  ${group.items
+                    .map(
+                      (it) => `
+                      <div class="surface-card" style="padding:12px 14px">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+                          <div>
+                            <div style="font-size:12px;color:var(--text-muted);font-weight:700">Dạng sách vở → Khẩu ngữ thực tế:</div>
+                            <div class="jp-font" style="font-size:15px;font-weight:800;color:var(--accent-indigo)">
+                              ${escapeHtml(it.formal)} <span style="color:var(--primary)">➔ ${escapeHtml(it.casual)}</span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            class="filter-chip"
+                            onclick="window.speakJpWithOptions('${escapeHtml(it.exampleJp)}', choukaiState.speechRate, 1.0)"
+                          >
+                            🔊 Nghe
+                          </button>
+                        </div>
+                        <div class="jp-font" style="font-size:14.5px;font-weight:700;color:var(--text-main);margin-top:6px">
+                          🗣️ 「${escapeHtml(it.exampleJp)}」
+                        </div>
+                        <div class="jp-font" style="font-size:12px;color:var(--text-muted)">
+                          ${escapeHtml(it.exampleHira)}
+                        </div>
+                        <div style="font-size:12.5px;color:var(--text-secondary);margin-top:4px">
+                          🇻🇳 ${escapeHtml(it.meaningVi)}
+                        </div>
+                        <div style="font-size:12px;color:#b45309;background:#fef3c7;padding:5px 8px;border-radius:6px;margin-top:8px;font-weight:600">
+                          💡 ${escapeHtml(it.tip)}
+                        </div>
+                      </div>
+                    `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `
+            )
+            .join("")}
+        </div>
       </div>
     `;
   }
