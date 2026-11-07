@@ -4853,6 +4853,8 @@
           ? renderChoukaiMode1Dictation()
           : choukaiState.activeMode === "mode2"
           ? renderChoukaiMode2Mondai4()
+          : choukaiState.activeMode === "mode3"
+          ? renderChoukaiMode3Dialogues()
           : typeof renderChoukaiOtherModes === "function"
           ? renderChoukaiOtherModes()
           : `<div class="surface-card">Đang tải chế độ luyện nghe...</div>`
@@ -5144,6 +5146,320 @@
               <div style="display:flex;justify-content:space-between;margin-top:8px">
                 <button class="btn btn-secondary" onclick="window.nextM2Question(-1)">← Tình huống trước</button>
                 <button class="btn btn-secondary" onclick="window.nextM2Question(1)">Bỏ qua / Tình huống tiếp →</button>
+              </div>
+            `
+        }
+      </div>
+    `;
+  }
+
+  // ============================================================================
+  // CHẾ ĐỘ 3: GIẢI MÃ HỘI THOẠI & BẮT BẪY ĐỔI Ý (JLPT CHOUKAI MONDAI 1 & 2)
+  // ============================================================================
+  choukaiState.m3Index = 0;
+  choukaiState.m3Answered = false;
+  choukaiState.m3SelectedIdx = -1;
+  choukaiState.m3Score = 0;
+  choukaiState.m3ShowScript = false;
+  choukaiState.m3ShowHint = false;
+
+  function getFilteredDialoguesPool() {
+    const raw = window.CHOUKAI_DIALOGUES || [];
+    if (choukaiState.chapterFilter === "ALL") return raw;
+    const filtered = raw.filter((item) => String(item.chapterId) === String(choukaiState.chapterFilter));
+    return filtered.length > 0 ? filtered : raw;
+  }
+
+  window.playM3FullDialogue = function (customRate) {
+    if (!("speechSynthesis" in window)) return;
+    const pool = getFilteredDialoguesPool();
+    const dlg = pool[choukaiState.m3Index % pool.length];
+    if (!dlg) return;
+    window.speechSynthesis.cancel();
+
+    const rate = customRate || choukaiState.speechRate || 0.9;
+
+    // 1. Setting / Intro question
+    const uIntro = new SpeechSynthesisUtterance(dlg.settingJp);
+    uIntro.lang = "ja-JP";
+    uIntro.rate = rate;
+    uIntro.pitch = 1.0;
+    window.speechSynthesis.speak(uIntro);
+
+    // 2. Dialogue turns (Male vs Female pitch)
+    dlg.turns.forEach((t) => {
+      const uTurn = new SpeechSynthesisUtterance(t.jp);
+      uTurn.lang = "ja-JP";
+      uTurn.rate = rate;
+      uTurn.pitch = t.speaker === "M" ? 0.85 : 1.15;
+      window.speechSynthesis.speak(uTurn);
+    });
+
+    // 3. Final question
+    const uQ = new SpeechSynthesisUtterance(dlg.questionJp);
+    uQ.lang = "ja-JP";
+    uQ.rate = rate;
+    uQ.pitch = 1.0;
+    window.speechSynthesis.speak(uQ);
+  };
+
+  window.playM3SingleTurn = function (turnIdx) {
+    const pool = getFilteredDialoguesPool();
+    const dlg = pool[choukaiState.m3Index % pool.length];
+    if (!dlg || !dlg.turns[turnIdx]) return;
+    const t = dlg.turns[turnIdx];
+    const pitch = t.speaker === "M" ? 0.85 : 1.15;
+    window.speakJpWithOptions(t.jp, choukaiState.speechRate, pitch);
+  };
+
+  window.stopChoukaiAudio = function () {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  };
+
+  window.toggleM3Script = function () {
+    choukaiState.m3ShowScript = !choukaiState.m3ShowScript;
+    renderApp();
+  };
+
+  window.toggleM3Hint = function () {
+    choukaiState.m3ShowHint = !choukaiState.m3ShowHint;
+    renderApp();
+  };
+
+  window.selectM3Option = function (optIdx) {
+    if (choukaiState.m3Answered) return;
+    const pool = getFilteredDialoguesPool();
+    const dlg = pool[choukaiState.m3Index % pool.length];
+    if (!dlg) return;
+    choukaiState.m3Answered = true;
+    choukaiState.m3SelectedIdx = optIdx;
+    if (optIdx === dlg.answerIndex) {
+      choukaiState.m3Score++;
+    }
+    renderApp();
+  };
+
+  window.nextM3Dialogue = function (dir) {
+    window.stopChoukaiAudio();
+    const pool = getFilteredDialoguesPool();
+    if (pool.length === 0) return;
+    const step = dir || 1;
+    choukaiState.m3Index = (choukaiState.m3Index + step + pool.length) % pool.length;
+    choukaiState.m3Answered = false;
+    choukaiState.m3SelectedIdx = -1;
+    choukaiState.m3ShowScript = false;
+    choukaiState.m3ShowHint = false;
+    renderApp();
+  };
+
+  function renderChoukaiMode3Dialogues() {
+    const pool = getFilteredDialoguesPool();
+    if (pool.length === 0) {
+      return `<div class="surface-card">Chưa có dữ liệu hội thoại.</div>`;
+    }
+    const idx = choukaiState.m3Index % pool.length;
+    const dlg = pool[idx];
+    const showScript = choukaiState.m3Answered || choukaiState.m3ShowScript;
+    const isCorrect = choukaiState.m3SelectedIdx === dlg.answerIndex;
+
+    return `
+      <div class="surface-card" style="border:2px solid var(--primary)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+          <div>
+            <span class="chapter-tag" style="margin-bottom:4px">
+              🎭 CHẾ ĐỘ 3: GIẢI MÃ HỘI THOẠI & BẮT BẪY ĐỔI Ý (${escapeHtml(dlg.mondaiType)})
+            </span>
+            <h3 style="font-size:18px;font-weight:800">
+              ${escapeHtml(dlg.titleVi)}
+            </h3>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="lesson-badge">Bài hội thoại ${idx + 1} / ${pool.length} (Chương ${dlg.chapterId} • Bài ${dlg.lessonId})</span>
+            <span class="lesson-badge" style="color:var(--success)">Đúng: ${choukaiState.m3Score} bài</span>
+          </div>
+        </div>
+
+        <!-- AUDIO STAGE FOR DIALOGUE -->
+        <div class="choukai-audio-stage">
+          <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+            <button class="audio-play-hero-btn" onclick="window.playM3FullDialogue()">
+              ▶️ Phát Toàn Bộ Hội Thoại Nam ↔ Nữ (${choukaiState.speechRate}x)
+            </button>
+            <button class="btn btn-secondary" onclick="window.playM3FullDialogue(0.75)">
+              🐢 Nghe Chậm (0.75x)
+            </button>
+            <button class="btn btn-secondary" onclick="window.stopChoukaiAudio()">
+              ⏹️ Dừng phát
+            </button>
+          </div>
+
+          <!-- SETTING & QUESTION PROMPT (ALWAYS VISIBLE LIKE REAL JLPT EXAM) -->
+          <div style="background:var(--bg-surface);border:1.5px solid var(--border-color);border-radius:12px;padding:12px 16px;text-align:left;max-width:780px;margin:0 auto 12px">
+            <div style="font-size:12px;font-weight:800;color:var(--accent-indigo);margin-bottom:4px">
+              📌 CÂU HỎI ĐỊNH HƯỚNG TRƯỚC KHI NGHE (Hãy đọc kỹ câu hỏi trước khi bấm nghe):
+            </div>
+            <div class="jp-font" style="font-size:16px;font-weight:800;color:var(--text-main)">
+              ${escapeHtml(dlg.settingJp)}
+            </div>
+            <div style="font-size:13px;color:var(--text-secondary);margin-top:3px">
+              🇻🇳 ${escapeHtml(dlg.settingVi)}
+            </div>
+          </div>
+
+          <!-- TOGGLE SCRIPT & TRAP HINT -->
+          <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap">
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m3ShowScript ? "active" : ""}"
+              onclick="window.toggleM3Script()"
+            >
+              ${choukaiState.m3ShowScript ? "🙈 Ẩn Script Hội Thoại" : "📜 Xem Script Hội Thoại (Kèm phân tích Bẫy)"}
+            </button>
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m3ShowHint ? "active" : ""}"
+              onclick="window.toggleM3Hint()"
+            >
+              ${choukaiState.m3ShowHint ? "🙈 Ẩn gợi ý bắt bẫy" : "💡 Hiện gợi ý từ khóa bắt bẫy"}
+            </button>
+          </div>
+
+          ${
+            choukaiState.m3ShowHint
+              ? `
+                <div style="margin-top:10px">
+                  <span class="jlpt-hint-badge">
+                    💡 Mẹo bắt bẫy bài này: ${escapeHtml(dlg.trapHint)}
+                  </span>
+                </div>
+              `
+              : ""
+          }
+
+          <!-- DIALOGUE SCRIPT (REVEALED ON ANSWER OR TOGGLE) -->
+          ${
+            showScript
+              ? `
+                <div class="dialogue-box" style="max-width:780px;margin:14px auto 0">
+                  ${dlg.turns
+                    .map(
+                      (t, tIdx) => `
+                      <div class="dialogue-turn" style="${t.isKeyAnswer ? "border:2px solid var(--success);background:var(--success-soft)" : t.isTrap ? "border:1.5px dashed #f59e0b" : ""}">
+                        <div class="dialogue-avatar ${t.speaker === "M" ? "male" : "female"}">
+                          ${t.speaker === "M" ? "👨" : "👩"}
+                        </div>
+                        <div style="flex:1">
+                          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:4px">
+                            <div>
+                              <strong style="font-size:12.5px;color:var(--text-secondary)">${escapeHtml(t.name)}</strong>
+                              ${t.isTrap ? `<span class="trap-tag">⚠️ BẪY ĐỀ THI</span>` : ""}
+                              ${t.isKeyAnswer ? `<span class="key-answer-tag">🎯 CÂU CHỐT ĐÁP ÁN</span>` : ""}
+                            </div>
+                            <button
+                              type="button"
+                              class="filter-chip"
+                              style="padding:2px 8px;font-size:11px"
+                              onclick="window.playM3SingleTurn(${tIdx})"
+                            >
+                              🔊 Nghe câu này
+                            </button>
+                          </div>
+                          <div class="jp-font" style="font-size:15.5px;font-weight:700;color:var(--text-main)">
+                            ${escapeHtml(t.jp)}
+                          </div>
+                          <div class="jp-font" style="font-size:12.5px;color:var(--text-muted);margin-top:2px">
+                            ${escapeHtml(t.hira)}
+                          </div>
+                          <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">
+                            🇻🇳 ${escapeHtml(t.vi)}
+                          </div>
+                          ${
+                            t.trapNote
+                              ? `<div style="margin-top:6px;font-size:12px;font-weight:700;color:#b45309">
+                                  🔍 <em>${escapeHtml(t.trapNote)}</em>
+                                </div>`
+                              : ""
+                          }
+                          ${
+                            t.keyNote
+                              ? `<div style="margin-top:6px;font-size:12px;font-weight:700;color:#15803d">
+                                  ✅ <em>${escapeHtml(t.keyNote)}</em>
+                                </div>`
+                              : ""
+                          }
+                        </div>
+                      </div>
+                    `
+                    )
+                    .join("")}
+                </div>
+              `
+              : ""
+          }
+        </div>
+
+        <!-- 4 MULTIPLE CHOICE OPTIONS (1・2・3・4) -->
+        <div style="font-size:14px;font-weight:800;margin-bottom:10px;color:var(--text-main)" class="jp-font">
+          ❓ 質問：${escapeHtml(dlg.questionJp)}
+        </div>
+
+        <div class="jlpt-choices-grid" style="padding-left:0;margin-bottom:16px">
+          ${dlg.options
+            .map((opt, oIdx) => {
+              let cls = "jlpt-choice-btn";
+              if (choukaiState.m3Answered) {
+                if (oIdx === dlg.answerIndex) cls += " correct";
+                else if (oIdx === choukaiState.m3SelectedIdx) cls += " wrong";
+              }
+              return `
+                <button
+                  type="button"
+                  class="${cls}"
+                  style="padding:12px 14px"
+                  ${choukaiState.m3Answered ? "disabled" : ""}
+                  onclick="window.selectM3Option(${oIdx})"
+                >
+                  <span class="jlpt-choice-num">${oIdx + 1}</span>
+                  <div style="text-align:left">
+                    <div class="jp-font" style="font-size:15.5px;font-weight:800">${escapeHtml(opt.jp)}</div>
+                    ${
+                      choukaiState.m3Answered
+                        ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:3px">${escapeHtml(opt.vi)}</div>`
+                        : ""
+                    }
+                  </div>
+                </button>
+              `;
+            })
+            .join("")}
+        </div>
+
+        <!-- RESULT & NAVIGATION -->
+        ${
+          choukaiState.m3Answered
+            ? `
+              <div class="jlpt-explain-bar ${isCorrect ? "ok" : "err"}" style="margin-left:0">
+                <div>
+                  ${
+                    isCorrect
+                      ? "✅ <strong>Xuất sắc! Bạn đã vượt qua bẫy đổi ý và chọn đúng đáp án!</strong>"
+                      : `❌ <strong>Bạn đã dính bẫy hội thoại!</strong> (Đáp án đúng là <strong>${dlg.answerIndex + 1}：${escapeHtml(dlg.options[dlg.answerIndex].jp)}</strong>)`
+                  }
+                  <div style="font-size:12.5px;margin-top:4px">
+                    👆 Hãy xem phần <strong>Script Hội Thoại</strong> vừa được mở ở trên (các câu có gắn nhãn <strong>⚠️ BẪY ĐỀ THI</strong> và <strong>🎯 CÂU CHỐT ĐÁP ÁN</strong>) và bấm nghe lại từng câu nhé!
+                  </div>
+                </div>
+                <button class="btn btn-primary" onclick="window.nextM3Dialogue(1)">
+                  Hội thoại tiếp theo →
+                </button>
+              </div>
+            `
+            : `
+              <div style="display:flex;justify-content:space-between;margin-top:8px">
+                <button class="btn btn-secondary" onclick="window.nextM3Dialogue(-1)">← Bài trước</button>
+                <button class="btn btn-secondary" onclick="window.nextM3Dialogue(1)">Bài hội thoại tiếp →</button>
               </div>
             `
         }

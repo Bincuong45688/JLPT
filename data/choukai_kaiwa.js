@@ -359,3 +359,445 @@ window.CHOUKAI_MONDAI4 = [
     kaiwaTip: "Cặp câu chào bất hủ nơi công sở Nhật: Người về trước nói 「お先に失礼します」, người ở lại đáp 「お疲れ様でした / お疲れ様です」."
   }
 ];
+
+
+// ============================================================================
+// CHẾ ĐỘ 3: HỘI THOẠI BẮT BẪY ĐỔI Ý (JLPT CHOUKAI MONDAI 1 & 2 — 課題理解・ポイント理解)
+// ============================================================================
+window.CHOUKAI_DIALOGUES = [
+  {
+    id: "dlg-101",
+    chapterId: 1,
+    lessonId: "1-3",
+    mondaiType: "問題1（課題理解 — Nghe hiểu nhiệm vụ cần làm）",
+    titleVi: "Chuẩn bị phòng họp ở công ty (Chữ 会議・室・用意・始)",
+    settingJp: "会社で 女の人と 男の人が 話して います。男の人は このあと まず 何を しますか。",
+    settingVi: "Ở công ty, người phụ nữ và người đàn ông đang nói chuyện. Người đàn ông sau đây trước tiên (まず) sẽ làm gì?",
+    trapHint: "Chú ý từ khóa 「もう終わりました」(đã xong rồi) và 「その前に」(trước đó thì...).",
+    turns: [
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "佐藤さん、午後2時からの 会議の 用意は もう できましたか。",
+        hira: "さとうさん、ごご にじからの かいぎの よういは もう できましたか。",
+        vi: "Anh Sato ơi, việc chuẩn bị cho cuộc họp lúc 2 giờ chiều đã xong chưa?"
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "はい、会議室の 掃除と いすを 並べるのは もう 終わりました。これから 資料を コピーします。",
+        hira: "はい、かいぎしつの そうじと いすを ならべるのは もう おわりました。これから しりょうを こぴーします。",
+        vi: "Vâng, việc dọn phòng họp và xếp ghế thì đã xong rồi. Bây giờ tôi sẽ đi photo tài liệu.",
+        isTrap: true,
+        trapNote: "Bẫy 1 & 2: Dọn phòng họp (掃除) và xếp ghế đã làm xong rồi (もう終わりました). Định đi photo tài liệu nhưng nghe tiếp câu sau!"
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "あ、資料は さっき 私が コピーして おきましたよ。それより、部長に 会議が 始まる 時間を 知らせて くれませんか。",
+        hira: "あ、しりょうは さっき わたしが こぴーして おきましたよ。それより、ぶちょうに かいぎが はじまる じかんを しらせて くれませんか。",
+        vi: "À, tài liệu thì lúc nãy tôi đã photo sẵn rồi. Thay vào đó (それより), anh báo cho Trưởng phòng giờ bắt đầu họp giúp tôi được không?",
+        isKeyAnswer: true,
+        keyNote: "Câu chốt đáp án: Người nữ đã photo sẵn rồi (コピーしておきました), và nhờ báo giờ họp cho Trưởng phòng (それより、部長に知らせて)."
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "わかりました。すぐ 行って きます。",
+        hira: "わかりました。すぐ いって きます。",
+        vi: "Tôi hiểu rồi. Tôi đi báo ngay đây."
+      }
+    ],
+    questionJp: "男の人は このあと まず 何を しますか。",
+    options: [
+      { jp: "会議室の いすを 並べる", vi: "Xếp ghế trong phòng họp (Sai — Đã làm xong)" },
+      { jp: "会議の 資料を コピーする", vi: "Photo tài liệu cuộc họp (Sai — Người nữ đã làm sẵn)" },
+      { jp: "部長に 会議の 時間を 知らせる", vi: "Báo giờ họp cho Trưởng phòng (Đúng — Câu chốt sau それより)" },
+      { jp: "会議室を 掃除する", vi: "Dọn dẹp phòng họp (Sai — Đã làm xong)" }
+    ],
+    answerIndex: 2
+  },
+  {
+    id: "dlg-201",
+    chapterId: 2,
+    lessonId: "2-2",
+    mondaiType: "問題1（課題理解 — Mua đồ chuẩn bị bữa tối）",
+    titleVi: "Đi siêu thị mua đồ nấu bữa tối (Chữ 買物・肉・野菜・魚)",
+    settingJp: "家で 妻と 夫が 話して います。夫は スーパーで 何を 買いますか。",
+    settingVi: "Ở nhà, người vợ và người chồng đang nói chuyện. Người chồng sẽ mua gì ở siêu thị?",
+    trapHint: "Chú ý cái gì còn trong tủ lạnh (冷蔵庫にまだある) và cái gì đổi ý ở phút cuối (やっぱり).",
+    turns: [
+      {
+        speaker: "F",
+        name: "妻 (Vợ)",
+        jp: "あなた、帰りに スーパーで 晩ご飯の 材料を 買って きて くれる？ 今夜は カレーに しようと 思って。",
+        hira: "あなた、かえりに すーぱーで ばんごはんの ざいりょうを かって きて くれる？ こんやは かれーに しようと おもって。",
+        vi: "Anh ơi, lúc về ghé siêu thị mua nguyên liệu nấu bữa tối giúp em nhé? Tối nay em định nấu món Cà-ri."
+      },
+      {
+        speaker: "M",
+        name: "夫 (Chồng)",
+        jp: "いいよ。とり肉と 野菜を 買えば いい？",
+        hira: "いいよ。とりにくと やさいを かえば いい？",
+        vi: "Được chứ. Anh mua thịt gà và rau củ là được hả?",
+        isTrap: true,
+        trapNote: "Bẫy: Người chồng hỏi có phải mua cả thịt gà (とり肉) và rau củ (野菜) không."
+      },
+      {
+        speaker: "F",
+        name: "妻 (Vợ)",
+        jp: "えっと、野菜は 冷蔵庫に まだ たくさん あるから いらないわ。とり肉だけ お願い。あ、それから 牛乳も なくなって いたから 1本 買って きて。",
+        hira: "えっと、やさいは れいぞうこに まだ たくさん あるから いらないわ。とりにくだけ おねがい。あ、それから ぎゅうにゅうも なくなって いたから いっぽん かって きて。",
+        vi: "À, rau củ trong tủ lạnh vẫn còn nhiều nên không cần đâu. Anh mua thịt gà thôi nhé. À, thêm nữa là sữa bò cũng hết rồi nên anh mua 1 hộp về nhé.",
+        isKeyAnswer: true,
+        keyNote: "Câu chốt đáp án: Rau không cần (いらない), chỉ mua thịt gà (とり肉) + thêm sữa bò (牛乳)."
+      },
+      {
+        speaker: "M",
+        name: "夫 (Chồng)",
+        jp: "わかった。じゃあ、その 二つを 買って 帰るね。",
+        hira: "わかった。じゃあ、その ふたつを かって かえるね。",
+        vi: "Anh hiểu rồi. Vậy anh sẽ mua 2 thứ đó về nhé."
+      }
+    ],
+    questionJp: "夫は スーパーで 何を 買いますか。",
+    options: [
+      { jp: "とり肉と 野菜", vi: "Thịt gà và rau củ (Sai — Rau còn nhiều trong tủ lạnh)" },
+      { jp: "とり肉と 牛乳", vi: "Thịt gà và sữa bò (Đúng)" },
+      { jp: "野菜と 牛乳", vi: "Rau củ và sữa bò (Sai)" },
+      { jp: "とり肉だけ", vi: "Chỉ mỗi thịt gà (Sai — Thiếu sữa bò bổ sung sau chữ あ、それから)" }
+    ],
+    answerIndex: 1
+  },
+  {
+    id: "dlg-301",
+    chapterId: 3,
+    lessonId: "3-1",
+    mondaiType: "問題2（ポイント理解 — Nghe hiểu lý do / thời gian）",
+    titleVi: "Gửi quà sinh nhật cho em gái (Chữ 送・届・誕生日・箱)",
+    settingJp: "郵便局で 女の人と 局員が 話して います。荷物は いつ 届きますか。",
+    settingVi: "Tại bưu điện, người phụ nữ và nhân viên bưu điện đang nói chuyện. Kiện hàng khi nào sẽ tới nơi?",
+    trapHint: "Phân biệt giữa gửi thường (ふつう) và gửi nhanh (速達 - そくたつ) mà người phụ nữ chọn cuối cùng.",
+    turns: [
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "すみません、この 箱を 福岡の 妹に 送りたいんですが、ふつうで 送ると いつ 届きますか。",
+        hira: "すみません、この はこを ふくおかの いもうとに おくりたいんですが、ふつうで おくると いつ とどきますか。",
+        vi: "Xin lỗi, tôi muốn gửi chiếc hộp này cho em gái ở Fukuoka, nếu gửi thường thì khi nào tới nơi ạ?"
+      },
+      {
+        speaker: "M",
+        name: "局員 (Nhân viên)",
+        jp: "今日は 水曜日ですから、ふつうなら あさって、金曜日の 午後に 届きます。急ぎなら、速達に すれば 明日の 午前中に 着きますよ。",
+        hira: "きょうは すいようびですから、ふつうなら あさって、きんようびの ごごに とどきます。いそぎなら、そくたつに すれば あしたの ごぜんちゅうに つきますよ。",
+        vi: "Hôm nay là thứ Tư nên gửi thường thì ngày kia — chiều thứ Sáu sẽ tới. Nếu gấp mà gửi chuyển phát nhanh thì trong sáng mai sẽ tới nơi đấy ạ.",
+        isTrap: true,
+        trapNote: "Bẫy thời gian: Thứ Tư (Hôm nay), Sáng Thứ Năm (Gửi nhanh), Chiều Thứ Sáu (Gửi thường)."
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "妹の 誕生日は 土曜日だから、金曜日でも 間に合うんですが… やっぱり 早く 届けたいので、速達で お願いします。",
+        hira: "いもうとの たんじょうびは どようびだから、きんようびでも まにあうんですが… やっぱり はやく とどけたいので、そくたつで おねがいします。",
+        vi: "Sinh nhật em gái tôi là thứ Bảy nên thứ Sáu cũng vẫn kịp... nhưng quả nhiên (やっぱり) tôi muốn gửi tới sớm nên cho tôi gửi chuyển phát nhanh (速達) nhé.",
+        isKeyAnswer: true,
+        keyNote: "Câu chốt: Nhờ từ khóa 「やっぱり…速達でお願いします」 → Hàng sẽ tới vào Sáng ngày mai (Thứ Năm)!"
+      }
+    ],
+    questionJp: "荷物は いつ 届きますか。",
+    options: [
+      { jp: "水曜日の 午後", vi: "Chiều thứ Tư (Hôm nay)" },
+      { jp: "木曜日の 午前中", vi: "Trong buổi sáng thứ Năm (Đúng — Vì chọn gửi 速達)" },
+      { jp: "金曜日の 午後", vi: "Chiều thứ Sáu (Bẫy — Đây là nếu gửi thường)" },
+      { jp: "土曜日の 午前中", vi: "Sáng thứ Bảy (Bẫy — Đây là ngày sinh nhật em gái)" }
+    ],
+    answerIndex: 1
+  },
+  {
+    id: "dlg-401",
+    chapterId: 4,
+    lessonId: "4-1",
+    mondaiType: "問題2（ポイント理解 — Hẹn giờ và địa điểm gặp mặt）",
+    titleVi: "Đổi giờ và chỗ hẹn xem phim (Chữ 映画・待ち合わせ・時計・前)",
+    settingJp: "男の人と 女の人が 電話で 明日の 映画に ついて 話して います。二人は 明日 どこで 会いますか。",
+    settingVi: "Người đàn ông và người phụ nữ đang nói chuyện điện thoại về buổi xem phim ngày mai. Ngày mai hai người sẽ gặp nhau ở đâu?",
+    trapHint: "Chú ý những địa điểm bị chê là đông người (人が多くて大変) và địa điểm chốt cuối cùng.",
+    turns: [
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "明日の 映画、駅の 改札（かいさつ）の 前で 待ち合わせようか。",
+        hira: "あしたの えいが、えきの かいさつの まえで まちあわせようか。",
+        vi: "Buổi xem phim ngày mai, chúng mình hẹn gặp ở trước cửa soát vé nhà ga nhé?",
+        isTrap: true,
+        trapNote: "Bẫy 1: Trước cửa soát vé nhà ga (駅の改札の前) là đề xuất đầu tiên nhưng sắp bị bác bỏ."
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "うーん、日曜日は 駅の 改札は 人が 多くて 見つけるのが 大変だよ。映画館の 入り口は どう？",
+        hira: "うーん、にちようびは えきの かいさつは ひとが おおくて みつけるのが たいへんだよ。えいがかんの いりぐちは どう？",
+        vi: "Ừm, Chủ nhật ở cửa soát vé đông người lắm nên khó tìm nhau. Ở lối vào rạp chiếu phim thì sao?",
+        isTrap: true,
+        trapNote: "Bẫy 2: Lối vào rạp chiếu phim (映画館の入り口) do bạn nữ đề xuất."
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "でも、切符は 私が 2枚とも 持って いるよ。先に 本屋の となりにある 喫茶店で お茶を 飲んでから いっしょに 映画館へ 行かない？",
+        hira: "でも、きっぷは わたしが にまいとも もって いるよ。さきに ほんやの となりにある きっさてんで おちゃを のんでから いっしょに えいがかんへ いかない？",
+        vi: "Nhưng mình đang cầm cả 2 tấm vé mà. Hay là gặp nhau uống trà ở quán giải khát cạnh hiệu sách trước rồi cùng đi tới rạp phim nhé?",
+        isKeyAnswer: true,
+        keyNote: "Đề xuất chốt: Quán giải khát (喫茶店) bên cạnh hiệu sách."
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "あ、いいね！じゃあ そこで 会おう。",
+        hira: "あ、いいね！じゃあ そこで あおう。",
+        vi: "À, hay đấy! Vậy gặp nhau ở đó nhé."
+      }
+    ],
+    questionJp: "二人は 明日 どこで 会いますか。",
+    options: [
+      { jp: "駅の 改札の 前", vi: "Trước cửa soát vé nhà ga (Bẫy 1)" },
+      { jp: "映画館の 入り口", vi: "Lối vào rạp chiếu phim (Bẫy 2)" },
+      { jp: "本屋の 中", vi: "Bên trong hiệu sách (Bẫy 3 — Nghe nhầm 本屋のとなり)" },
+      { jp: "本屋の となりの 喫茶店", vi: "Quán giải khát bên cạnh hiệu sách (Đúng)" }
+    ],
+    answerIndex: 3
+  },
+  {
+    id: "dlg-501",
+    chapterId: 5,
+    lessonId: "5-2",
+    mondaiType: "問題1（課題理解 — Phương tiện di chuyển đến sân bay）",
+    titleVi: "Chọn phương tiện đi ra sân bay (Chữ 空港・乗・電車・バス)",
+    settingJp: "ホテルで 男の人と 受付の 人が 話して います。男の人は 何で 空港へ 行きますか。",
+    settingVi: "Tại khách sạn, người đàn ông và nhân viên lễ tân đang nói chuyện. Người đàn ông sẽ đi ra sân bay bằng phương tiện gì?",
+    trapHint: "Lắng nghe kỹ lý do tại sao không đi tàu điện (乗り換えが大変) và tại sao không đi xe buýt (事故で遅れている).",
+    turns: [
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "すみません、これから 空港へ 行きたいんですが、電車と バスと どちらが いいでしょうか。荷物が 2つ あって 重いんです。",
+        hira: "すみません、これから くうこうへ いきたいんですが、でんしゃと ばすと どちらが いいでしょうか。にもつが ふたつ あって おもいんです。",
+        vi: "Xin lỗi, bây giờ tôi muốn ra sân bay, đi tàu điện hay xe buýt thì tốt hơn ạ? Tôi có 2 kiện hành lý khá nặng."
+      },
+      {
+        speaker: "F",
+        name: "受付 (Lễ tân)",
+        jp: "電車は 早くて 便利ですが、途中で 2回 乗り換えなければ なりません。ホテルの 前から 空港バスが 出て いますが、今日は 道の 事故で かなり 遅れて います。",
+        hira: "でんしゃは はやくて べんりですが、とちゅうで にかい のりかえなければ なりません。ほてるの まえから くうこうばすが でて いますが、きょうは みちの じこで かなり おくれて います。",
+        vi: "Tàu điện thì nhanh và tiện nhưng giữa đường phải đổi tàu 2 lần. Trước khách sạn có xe buýt sân bay nhưng hôm nay do tai nạn trên đường nên đang trễ khá nhiều.",
+        isTrap: true,
+        trapNote: "Bẫy: Tàu điện phải đổi chuyến 2 lần (nặng hành lý), còn xe buýt đang bị kẹt xe do tai nạn."
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "そうですか。重い 荷物を 持って 乗り換えるのは 大変だし、飛行機の 時間も 近いから、タクシーを 呼んで もらえますか。",
+        hira: "そうですか。おもい にもつを もって のりかえるのは たいへんだし、ひこうきの じかんも ちかいから、たくしーを よんで もらえますか。",
+        vi: "Vậy sao. Mang hành lý nặng mà đổi tàu thì vất vả quá, giờ bay cũng sắp đến rồi nên cô gọi giúp tôi một chiếc taxi được không?",
+        isKeyAnswer: true,
+        keyNote: "Câu chốt: Nhờ gọi Taxi (タクシーを呼んでもらえますか)."
+      }
+    ],
+    questionJp: "男の人は 何で 空港へ 行きますか。",
+    options: [
+      { jp: "電車（でんしゃ）", vi: "Tàu điện (Sai — Ngại đổi tàu 2 lần vì hành lý nặng)" },
+      { jp: "空港バス", vi: "Xe buýt sân bay (Sai — Đang bị trễ do tai nạn)" },
+      { jp: "タクシー", vi: "Taxi (Đúng)" },
+      { jp: "ホテルの 車", vi: "Xe riêng của khách sạn (Không được nhắc tới)" }
+    ],
+    answerIndex: 2
+  },
+  {
+    id: "dlg-601",
+    chapterId: 6,
+    lessonId: "6-1",
+    mondaiType: "問題1（課題理解 — Chuẩn bị đi phỏng vấn làm thêm）",
+    titleVi: "Mang gì khi đi phỏng vấn Arubaito (Chữ 写真・履歴書・印鑑・忘)",
+    settingJp: "電話で 店長と 学生が 話して います。学生は 明日の 面接に 何を 持って 行きますか。",
+    settingVi: "Qua điện thoại, cửa hàng trưởng và bạn sinh viên đang nói chuyện. Ngày mai đi phỏng vấn, bạn sinh viên sẽ mang theo những gì?",
+    trapHint: "Chú ý món đồ không cần mang vào ngày mai (明日はいりません) và món đồ cần mang thêm.",
+    turns: [
+      {
+        speaker: "M",
+        name: "店長 (Quản lý)",
+        jp: "では、明日の 午後3時に お店へ 面接に 来て ください。写真を はった 履歴書を 忘れないで くださいね。",
+        hira: "では、あしたの ごご さんじに おみせへ めんせつに きて ください。しゃしんを はった りれきしょを わすれないで くださいね。",
+        vi: "Vậy 3 giờ chiều mai em hãy đến quán để phỏng vấn nhé. Đừng quên mang sơ yếu lý lịch có dán ảnh nhé."
+      },
+      {
+        speaker: "F",
+        name: "学生 (Sinh viên)",
+        jp: "はい。あのう、身分証明書（みぶんしょうめいしょ）の 学生証や ハンコも 持って 行った ほうが いいですか。",
+        hira: "はい。あのう、みぶんしょうめいしょの がくせいしょうや はんこも もって いった ほうが いいですか。",
+        vi: "Vâng ạ. À, em có nên mang theo thẻ sinh viên và con dấu (Hanko) không ạ?",
+        isTrap: true,
+        trapNote: "Bẫy: Sinh viên hỏi về cả Thẻ sinh viên (学生証) và Con dấu (ハンコ)."
+      },
+      {
+        speaker: "M",
+        name: "店長 (Quản lý)",
+        jp: "学生証は 確認するので 持って 来て ください。ハンコは 採用が 決まってからで いいので、明日は いりませんよ。",
+        hira: "がくせいしょうは かくにんするので もって きて ください。はんこは さいようが きまってからで いいので、あしたは いりませんよ。",
+        vi: "Thẻ sinh viên thì cần kiểm tra nên em hãy mang theo nhé. Còn con dấu thì đợi sau khi trúng tuyển cũng được, ngày mai chưa cần đâu.",
+        isKeyAnswer: true,
+        keyNote: "Câu chốt: Mang Sơ yếu lý lịch dán ảnh (履歴書) + Thẻ sinh viên (学生証). Không cần con dấu."
+      }
+    ],
+    questionJp: "学生は 明日の 面接に 何を 持って 行きますか。",
+    options: [
+      { jp: "履歴書だけ", vi: "Chỉ mỗi sơ yếu lý lịch" },
+      { jp: "履歴書と 学生証", vi: "Sơ yếu lý lịch và Thẻ sinh viên (Đúng)" },
+      { jp: "履歴書と ハンコ", vi: "Sơ yếu lý lịch và Con dấu" },
+      { jp: "履歴書と 学生証と ハンコ", vi: "Cả 3 thứ (Bẫy — Con dấu ngày mai chưa cần)" }
+    ],
+    answerIndex: 1
+  },
+  {
+    id: "dlg-701",
+    chapterId: 7,
+    lessonId: "7-2",
+    mondaiType: "問題1（課題理解 — Cách uống thuốc tại hiệu thuốc）",
+    titleVi: "Hướng dẫn uống thuốc tại hiệu thuốc (Chữ 薬・飲・食事・寝)",
+    settingJp: "薬局で 女の人と 薬剤師が 話して います。女の人は 昼ご飯の あと、どの 薬を 飲みますか。",
+    settingVi: "Tại hiệu thuốc, người phụ nữ và dược sĩ đang nói chuyện. Sau bữa trưa, người phụ nữ sẽ uống loại thuốc nào?",
+    trapHint: "Câu hỏi chỉ hỏi 「昼ご飯のあと」(SAU BỮA TRƯA)! Chú ý phân biệt thuốc uống 3 bữa và thuốc chỉ uống trước khi ngủ.",
+    turns: [
+      {
+        speaker: "M",
+        name: "薬剤師 (Dược sĩ)",
+        jp: "お薬は 全部で 3種類 あります。まず、この 白い 薬は のどの 痛みを とめる 薬で、朝・昼・晩の 食事の あとに 飲んで ください。",
+        hira: "おくすりは ぜんぶで さんしゅるい あります。まず、この しろい くすりは のどの いたみを とめる くすりで、あさ・ひる・ばんの しょくじの あとに のんで ください。",
+        vi: "Thuốc có tất cả 3 loại. Trước hết, thuốc màu trắng này trị đau họng, hãy uống sau bữa ăn sáng - trưa - tối.",
+        isKeyAnswer: true,
+        keyNote: "Thuốc trắng (白い薬): Uống sau ăn Sáng • Trưa • Tối → Có uống vào buổi trưa!"
+      },
+      {
+        speaker: "M",
+        name: "薬剤師 (Dược sĩ)",
+        jp: "つぎに、この 青い 薬は 眠く なる ことが ありますから、昼は 飲まないで、朝と 晩だけ 食後に 飲んで ください。そして 黄色い 薬は 熱が 高い ときだけ 飲んで ください。",
+        hira: "つぎに、この あおい くすりは ねむく なる ことが ありますから、ひるは のまないで、あさと ばんだけ しょくごに のんで ください。そして きいろい くすりは ねつが たかい ときだけ のんで ください。",
+        vi: "Tiếp theo, thuốc màu xanh này có thể gây buồn ngủ nên buổi trưa đừng uống, chỉ uống sau bữa sáng và tối thôi. Còn thuốc màu vàng chỉ uống khi sốt cao.",
+        isTrap: true,
+        trapNote: "Bẫy: Thuốc xanh không uống buổi trưa (昼は飲まないで). Thuốc vàng chỉ uống khi sốt cao."
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "今は 熱は ありませんから、黄色い 薬は 飲まなくても いいですね。",
+        hira: "いまは ねつは ありませんから、きいろい くすりは のまなくても いいですね。",
+        vi: "Hiện giờ tôi không bị sốt nên chưa cần uống thuốc màu vàng nhỉ."
+      }
+    ],
+    questionJp: "女の人は 今日の 昼ご飯の あと、どの 薬を 飲みますか。",
+    options: [
+      { jp: "白い 薬だけ", vi: "Chỉ uống thuốc màu trắng (Đúng)" },
+      { jp: "白い 薬と 青い 薬", vi: "Thuốc trắng và thuốc xanh (Sai — Thuốc xanh không uống buổi trưa)" },
+      { jp: "白い 薬と 黄色い 薬", vi: "Thuốc trắng và thuốc vàng (Sai — Hiện không bị sốt)" },
+      { jp: "3種類 ぜんぶ", vi: "Cả 3 loại thuốc" }
+    ],
+    answerIndex: 0
+  },
+  {
+    id: "dlg-801",
+    chapterId: 8,
+    lessonId: "8-2",
+    mondaiType: "問題2（ポイント理解 — Lý do chọn địa điểm du lịch）",
+    titleVi: "Lên kế hoạch du lịch kỳ nghỉ thu (Chữ 旅行・山・海・温泉)",
+    settingJp: "男の人と 女の人が 秋の 旅行に ついて 話して います。二人は どうして 山の 旅館に 決めましたか。",
+    settingVi: "Người đàn ông và người phụ nữ đang bàn về chuyến du lịch mùa thu. Tại sao hai người lại quyết định chọn Lữ quán trên núi?",
+    trapHint: "Chú ý lý do thực sự khiến cả hai cùng đồng ý ở câu cuối.",
+    turns: [
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "来月の 連休、海の 近くの ホテルへ 行かない？ 魚料理が おいしい そうだよ。",
+        hira: "らいげつの れんきゅう、うみの ちかくの ほてるへ いかない？ さかなりょうりが おいしい そうだよ。",
+        vi: "Kỳ nghỉ lễ tháng sau, mình đi khách sạn gần biển không? Nghe nói món cá ở đó ngon lắm.",
+        isTrap: true,
+        trapNote: "Bẫy: Món cá ngon (魚料理がおいしい) là của khách sạn gần biển, không phải lữ quán trên núi."
+      },
+      {
+        speaker: "F",
+        name: "女の人 (Nữ)",
+        jp: "海は 夏にも 行った じゃない。秋は やっぱり 紅葉（もみじ）が きれいな 山の 旅館で、ゆっくり 温泉に 入りたいな。",
+        hira: "うみは なつにも いった じゃない。あきは やっぱり もみじが きれいな やまの りょかんで、ゆっくり おんせんに はいりたいな。",
+        vi: "Biển thì mùa hè mình cũng đi rồi mà. Mùa thu quả nhiên mình muốn đến lữ quán trên núi có lá đỏ đẹp và ngâm suối nước nóng thư giãn cơ."
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "うーん、山の 旅館は 駅から 遠くて 不便だよ。あ、でも この 旅館の パンフレットを 見て！ 駅から 無料の バスが 出て いるし、静かな 温泉が 有名だって。ここに しよう！",
+        hira: "うーん、やまの りょかんは えきから とおくて ふべんだよ。あ、でも この りょかんの ぱんふれっとを みて！ えきから むりょうの ばすが でて いるし、しずかな おんせんが ゆうめいだって。ここに しよう！",
+        vi: "Ừm, lữ quán trên núi xa ga bất tiện lắm. À, nhưng nhìn tờ quảng cáo lữ quán này xem! Có xe buýt miễn phí từ nhà ga, lại nổi tiếng có suối nước nóng yên tĩnh nữa. Chọn chỗ này đi!",
+        isKeyAnswer: true,
+        keyNote: "Lý do chốt: Có xe buýt đưa đón miễn phí từ ga và có suối nước nóng (温泉)!"
+      }
+    ],
+    questionJp: "二人は どうして この 山の 旅館に 決めましたか。",
+    options: [
+      { jp: "魚料理が おいしいから", vi: "Vì món cá ngon (Bẫy — Của khách sạn gần biển)" },
+      { jp: "駅から 歩いて すぐ 行けるから", vi: "Vì đi bộ từ ga tới được ngay (Sai — Phải đi xe buýt miễn phí)" },
+      { jp: "無料の バスが あり、温泉に 入れるから", vi: "Vì có xe buýt miễn phí và được tắm suối nước nóng (Đúng)" },
+      { jp: "夏にも 行って よかったから", vi: "Vì mùa hè đã đi rồi và thấy thích (Bẫy — Mùa hè đi biển)" }
+    ],
+    answerIndex: 2
+  },
+  {
+    id: "dlg-901",
+    chapterId: 9,
+    lessonId: "9-3",
+    mondaiType: "問題1（課題理解 — Đăng ký lớp học văn hóa tại Nhật）",
+    titleVi: "Đăng ký lớp học nấu ăn tại Trung tâm (Chữ 申込・料理・教室・払)",
+    settingJp: "市民センターで 男の人と 係の人が 話して います。男の人は 今日 何を しなければ なりませんか。",
+    settingVi: "Tại Trung tâm văn hóa thành phố, người đàn ông và nhân viên phụ trách đang nói chuyện. Hôm nay người đàn ông phải làm gì?",
+    trapHint: "Phân biệt việc phải làm NGAY HÔM NAY (今日) và việc để đến ngày học đầu tiên (最初の授業の日) mới làm.",
+    turns: [
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "すみません、来月から 始まる 日本料理の 教室に 申し込みたいんですが。",
+        hira: "すみません、らいげつから はじまる にほんりょうりの きょうしつに もうしこみたいんですが。",
+        vi: "Xin lỗi, tôi muốn đăng ký lớp học nấu món Nhật bắt đầu từ tháng sau ạ."
+      },
+      {
+        speaker: "F",
+        name: "係の人 (Nhân viên)",
+        jp: "はい、ありがとうございます。では、こちらの 申込書に お名前と 住所、電話番号を 書いて 出して ください。",
+        hira: "はい、ありがとうございます。では、こちらの もうしこみしょに おなまえと じゅうしょ、でんわばんごうを かいて だして ください。",
+        vi: "Vâng, cảm ơn anh. Vậy anh hãy điền tên, địa chỉ và số điện thoại vào tờ đơn đăng ký này rồi nộp lại nhé.",
+        isKeyAnswer: true,
+        keyNote: "Việc phải làm hôm nay: Điền tên, địa chỉ, SĐT vào đơn đăng ký (申込書を書いて出す)."
+      },
+      {
+        speaker: "M",
+        name: "男の人 (Nam)",
+        jp: "あのう、材料費の 2000円も 今日 払いますか。",
+        hira: "あのう、ざいりょうひの にせんえんも きょう はらいますか。",
+        vi: "À, tiền nguyên liệu 2000 yên có phải đóng hôm nay luôn không ạ?",
+        isTrap: true,
+        trapNote: "Bẫy: Tiền nguyên liệu 2000 yên."
+      },
+      {
+        speaker: "F",
+        name: "係の人 (Nhân viên)",
+        jp: "いいえ、お金は 最初の 授業の 日に 先生に 払って ください。あと、その日は エプロンも 忘れないように 持って 来て くださいね。",
+        hira: "いいえ、おかねは さいしょの じゅぎょうの ひに せんせいに はらって ください。あと、そのひは えぷろんも わすれないように もって きて くださいね。",
+        vi: "Không ạ, tiền thì anh nộp cho giáo viên vào buổi học đầu tiên nhé. Ngoài ra hôm đó anh cũng đừng quên mang theo tạp dề nhé."
+      }
+    ],
+    questionJp: "男の人は 今日 何を しなければ なりませんか。",
+    options: [
+      { jp: "申込書を 書いて 出す", vi: "Viết đơn đăng ký và nộp (Đúng)" },
+      { jp: "申込書を 出して、2000円を 払う", vi: "Nộp đơn đăng ký và đóng 2000 yên (Bẫy — Tiền đóng vào buổi học đầu tiên)" },
+      { jp: "2000円を 払って、エプロンを 買う", vi: "Đóng 2000 yên và mua tạp dề" },
+      { jp: "先生に 電話を かける", vi: "Gọi điện thoại cho giáo viên" }
+    ],
+    answerIndex: 0
+  }
+];
