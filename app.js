@@ -1408,6 +1408,12 @@
         <span>›</span>
         <span style="color:var(--primary)">🎛️ Tự Chọn Bài / Chữ Kanji & Tạo Đề (JLPT • NAT-TEST • JBT/J.TEST • TOPJ)</span>
       `;
+    } else if (currentView === "choukai") {
+      bc.innerHTML = `
+        <span class="crumb-link" onclick="window.switchView('dashboard')">Lộ trình</span>
+        <span>›</span>
+        <span style="color:var(--primary)">🎧 Phòng Luyện Nghe Choukai (聴解) & Phản Xạ Kaiwa (会話) N5–N4</span>
+      `;
     } else if (currentView === "notebook") {
       bc.innerHTML = `
         <span class="crumb-link" onclick="window.switchView('dashboard')">Lộ trình</span>
@@ -1472,6 +1478,9 @@
             </button>
             <button class="btn btn-secondary" style="background:#fff;color:var(--primary);border-color:#fff;font-weight:800" onclick="window.switchView('custom-practice')">
               🎛️ Tự Chọn Bài / Kanji & Tạo Đề (JLPT • NAT • JBT)
+            </button>
+            <button class="btn btn-secondary" style="background:#fef3c7;color:#92400e;border-color:#fcd34d;font-weight:800" onclick="window.switchView('choukai')">
+              🎧 Luyện Nghe Choukai & Kaiwa N4
             </button>
             <button class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.25)" onclick="window.switchView('checkpoints')">
               🏆 Làm Bài Test Tổng
@@ -4324,6 +4333,531 @@
     renderApp();
   };
 
+  // ============================================================================
+  // VIEW 6: CHOUKAI (聴解) & KAIWA (会話) N5–N4 STUDIO
+  // ============================================================================
+  const choukaiState = {
+    activeMode: "mode1", // mode1 (Dictation) | mode2 (Mondai 4 Quick Kaiwa) | mode3 (Mondai 1-2 Dialogue) | mode4 (Kaiwa & Traps)
+    chapterFilter: "ALL", // ALL or 1..9
+    speechRate: 0.9, // 0.75 | 0.9 | 1.0 | 1.15
+    // Mode 1 (Dictation & Keyword Listening) state
+    m1SubMode: "choice", // choice (4 đáp án) | typing (gõ Hiragana/Romaji)
+    m1Questions: [],
+    m1Index: 0,
+    m1Answered: false,
+    m1Selected: "",
+    m1IsCorrect: false,
+    m1Score: 0,
+    m1ShowScriptBeforeAnswer: false,
+    m1ShowHint: false
+  };
+
+  window.speakJpWithOptions = function (text, customRate, customPitch) {
+    if (!("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const cleanText = String(text || "")
+      .replace(/【|】/g, "")
+      .replace(/（[^）]*）/g, "")
+      .trim();
+    if (!cleanText) return;
+    const utter = new SpeechSynthesisUtterance(cleanText);
+    utter.lang = "ja-JP";
+    utter.rate = customRate || choukaiState.speechRate || 0.9;
+    utter.pitch = customPitch || 1.0;
+    window.speechSynthesis.speak(utter);
+  };
+
+  function buildMode1DictationPool() {
+    const targetKanji =
+      choukaiState.chapterFilter === "ALL"
+        ? ALL_KANJI
+        : ALL_KANJI.filter((k) => String(k.chapterId) === String(choukaiState.chapterFilter));
+
+    const allReadingsInScope = targetKanji.flatMap((k) =>
+      getKanjiWords(k).map((w) => w.reading.replace(/〜/g, "").trim())
+    );
+
+    const items = [];
+    const seenWords = new Set();
+    const usedTemplates = new Set();
+
+    targetKanji.forEach((k) => {
+      getKanjiWords(k).forEach((w) => {
+        const cleanWord = w.word.replace(/〜/g, "").trim();
+        const cleanRead = w.reading.replace(/〜/g, "").trim();
+        if (!cleanWord || !cleanRead || seenWords.has(cleanWord)) return;
+        seenWords.add(cleanWord);
+
+        const wHash = stringHashSeed(cleanWord);
+        const fullKanjiSentence = buildNaturalJlptSentence(
+          cleanWord,
+          cleanRead,
+          w,
+          k,
+          "mondai1",
+          wHash + 7,
+          usedTemplates,
+          false
+        );
+        // Spoken sentence for TTS (replace 【word】 with cleanWord)
+        const spokenSentence = fullKanjiSentence.replace(`【${cleanWord}】`, cleanWord);
+        // Masked sentence with blank slot
+        const maskedSentence = fullKanjiSentence.replace(`【${cleanWord}】`, "【 🔊 ＿＿＿ 】");
+
+        const distractors = buildPhoneticReadingDistractors(cleanRead, [], allReadingsInScope);
+        const readingOptions = seededShuffle([cleanRead, ...distractors], wHash + 19);
+
+        items.push({
+          kanjiChar: k.char,
+          lessonId: k.lessonId,
+          chapterId: k.chapterId,
+          word: cleanWord,
+          reading: cleanRead,
+          hanViet: w.hanViet || k.hanViet,
+          meaning: w.meaning || k.meaning,
+          spokenSentence,
+          fullKanjiSentence: fullKanjiSentence.replace(/【|】/g, ""),
+          maskedSentence,
+          readingOptions
+        });
+      });
+    });
+
+    // Shuffle for fresh listening session
+    const shuffled = shuffleArray(items).slice(0, 20);
+    choukaiState.m1Questions = shuffled;
+    choukaiState.m1Index = 0;
+    choukaiState.m1Answered = false;
+    choukaiState.m1Selected = "";
+    choukaiState.m1IsCorrect = false;
+    choukaiState.m1Score = 0;
+    choukaiState.m1ShowScriptBeforeAnswer = false;
+    choukaiState.m1ShowHint = false;
+  }
+
+  window.setChoukaiMode = function (mode) {
+    choukaiState.activeMode = mode;
+    if (mode === "mode1" && choukaiState.m1Questions.length === 0) {
+      buildMode1DictationPool();
+    }
+    renderApp();
+  };
+
+  window.setChoukaiChapter = function (chVal) {
+    choukaiState.chapterFilter = chVal;
+    buildMode1DictationPool();
+    renderApp();
+  };
+
+  window.setChoukaiSpeed = function (rate) {
+    choukaiState.speechRate = Number(rate) || 0.9;
+    renderApp();
+  };
+
+  window.setChoukaiM1SubMode = function (subMode) {
+    choukaiState.m1SubMode = subMode;
+    renderApp();
+  };
+
+  window.restartChoukaiMode1 = function () {
+    buildMode1DictationPool();
+    renderApp();
+    const q = choukaiState.m1Questions[0];
+    if (q) window.speakJpWithOptions(q.spokenSentence, choukaiState.speechRate, 1.0);
+  };
+
+  window.playCurrentM1Audio = function (customRate) {
+    const q = choukaiState.m1Questions[choukaiState.m1Index];
+    if (!q) return;
+    window.speakJpWithOptions(q.spokenSentence, customRate || choukaiState.speechRate, 1.0);
+  };
+
+  window.playCurrentM1WordOnly = function () {
+    const q = choukaiState.m1Questions[choukaiState.m1Index];
+    if (!q) return;
+    window.speakJpWithOptions(q.reading, 0.85, 1.0);
+  };
+
+  window.toggleM1ScriptPreview = function () {
+    choukaiState.m1ShowScriptBeforeAnswer = !choukaiState.m1ShowScriptBeforeAnswer;
+    renderApp();
+  };
+
+  window.toggleM1Hint = function () {
+    choukaiState.m1ShowHint = !choukaiState.m1ShowHint;
+    renderApp();
+  };
+
+  window.answerChoukaiM1Choice = function (pickedReading) {
+    if (choukaiState.m1Answered) return;
+    const q = choukaiState.m1Questions[choukaiState.m1Index];
+    if (!q) return;
+    choukaiState.m1Answered = true;
+    choukaiState.m1Selected = pickedReading;
+    choukaiState.m1IsCorrect = pickedReading === q.reading;
+    if (choukaiState.m1IsCorrect) {
+      choukaiState.m1Score++;
+    } else {
+      userState.mistakes[q.kanjiChar] = (userState.mistakes[q.kanjiChar] || 0) + 1;
+      saveState();
+    }
+    renderApp();
+    window.speakJpWithOptions(q.spokenSentence, choukaiState.speechRate, 1.0);
+  };
+
+  window.submitChoukaiM1Typing = function () {
+    if (choukaiState.m1Answered) return;
+    const q = choukaiState.m1Questions[choukaiState.m1Index];
+    const inp = document.getElementById("m1DictationInput");
+    if (!q || !inp) return;
+    const userHira = romajiToHiragana(inp.value.trim(), true);
+    if (!userHira) return;
+    choukaiState.m1Answered = true;
+    choukaiState.m1Selected = userHira;
+    choukaiState.m1IsCorrect = userHira === q.reading || userHira === q.word;
+    if (choukaiState.m1IsCorrect) {
+      choukaiState.m1Score++;
+    } else {
+      userState.mistakes[q.kanjiChar] = (userState.mistakes[q.kanjiChar] || 0) + 1;
+      saveState();
+    }
+    renderApp();
+    window.speakJpWithOptions(q.spokenSentence, choukaiState.speechRate, 1.0);
+  };
+
+  window.nextChoukaiM1Question = function () {
+    if (choukaiState.m1Index + 1 < choukaiState.m1Questions.length) {
+      choukaiState.m1Index++;
+      choukaiState.m1Answered = false;
+      choukaiState.m1Selected = "";
+      choukaiState.m1IsCorrect = false;
+      choukaiState.m1ShowScriptBeforeAnswer = false;
+      choukaiState.m1ShowHint = false;
+      renderApp();
+      const nextQ = choukaiState.m1Questions[choukaiState.m1Index];
+      if (nextQ) window.speakJpWithOptions(nextQ.spokenSentence, choukaiState.speechRate, 1.0);
+    } else {
+      buildMode1DictationPool();
+      renderApp();
+    }
+  };
+
+  function renderChoukaiMode1Dictation() {
+    if (choukaiState.m1Questions.length === 0) {
+      buildMode1DictationPool();
+    }
+    const q = choukaiState.m1Questions[choukaiState.m1Index];
+    if (!q) {
+      return `<div class="surface-card">Không có dữ liệu từ vựng cho chương này.</div>`;
+    }
+
+    const total = choukaiState.m1Questions.length;
+    const showScript = choukaiState.m1Answered || choukaiState.m1ShowScriptBeforeAnswer;
+
+    return `
+      <div class="surface-card" style="border:2px solid var(--primary)">
+        <!-- SUB-HEADER: SUB-MODE & SCORE -->
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div>
+            <span class="chapter-tag" style="margin-bottom:4px">
+              👂 CHẾ ĐỘ 1: NGHE BẮT TỪ KHÓA & CHÉP CHÍNH TẢ (聞き取り・ディクテーション)
+            </span>
+            <h3 style="font-size:18px;font-weight:800">
+              Xóa độ trễ từ Tai lên Não — Nghe câu hoàn chỉnh & bắt đúng âm đọc
+            </h3>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button
+              class="filter-chip ${choukaiState.m1SubMode === "choice" ? "active" : ""}"
+              onclick="window.setChoukaiM1SubMode('choice')"
+            >
+              🎯 Trắc nghiệm 4 đáp án
+            </button>
+            <button
+              class="filter-chip ${choukaiState.m1SubMode === "typing" ? "active" : ""}"
+              onclick="window.setChoukaiM1SubMode('typing')"
+            >
+              ⌨️ Tự gõ Hiragana/Romaji
+            </button>
+            <button class="filter-chip" onclick="window.restartChoukaiMode1()">
+              🔄 Đổi 20 câu mới
+            </button>
+          </div>
+        </div>
+
+        <!-- PROGRESS BAR -->
+        <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:8px;color:var(--text-secondary)">
+          <span>Câu ${choukaiState.m1Index + 1} / ${total} • Thuộc Bài ${q.lessonId} (Chữ 「${q.kanjiChar}」)</span>
+          <span style="color:var(--success)">Điểm hiện tại: ${choukaiState.m1Score} / ${choukaiState.m1Index + (choukaiState.m1Answered ? 1 : 0)}</span>
+        </div>
+        <div class="progress-bar-track" style="margin-bottom:18px">
+          <div class="progress-bar-fill" style="width:${Math.round(((choukaiState.m1Index + 1) / total) * 100)}%"></div>
+        </div>
+
+        <!-- AUDIO STAGE -->
+        <div class="choukai-audio-stage">
+          <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <button class="audio-play-hero-btn" onclick="window.playCurrentM1Audio()">
+              🔊 Bấm Nghe Cả Câu (${choukaiState.speechRate}x)
+            </button>
+            <button class="btn btn-secondary" onclick="window.playCurrentM1Audio(0.72)">
+              🐢 Nghe Chậm (0.72x)
+            </button>
+            <button class="btn btn-secondary" onclick="window.playCurrentM1WordOnly()">
+              🎧 Chỉ Nghe Từ Khóa Cần Bắt
+            </button>
+          </div>
+
+          <div style="font-size:12.5px;color:var(--text-secondary);margin-bottom:10px">
+            Hãy lắng nghe câu tiếng Nhật và xác định <strong>từ vựng ở vị trí chỗ trống 【 🔊 ＿＿＿ 】</strong> được phát âm là gì:
+          </div>
+
+          <!-- SENTENCE DISPLAY (MASKED BY DEFAULT TO FORCE LISTENING) -->
+          <div class="dictation-masked-sentence">
+            ${
+              showScript
+                ? formatJlptSentence(q.maskedSentence.replace("【 🔊 ＿＿＿ 】", `【${q.word}（${q.reading}）】`))
+                : `<span style="color:var(--text-secondary);font-size:16px">🙈 Đang ẩn mặt chữ tiếng Nhật để luyện tai nghe thuần túy...</span>
+                   <div style="margin-top:8px;font-size:19px">
+                     <span class="dictation-slot">🔊 ＿＿＿</span>
+                   </div>`
+            }
+          </div>
+
+          <!-- TOGGLE SCRIPT & TOGGLE HINT BUTTONS -->
+          <div style="display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:10px">
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m1ShowScriptBeforeAnswer ? "active" : ""}"
+              onclick="window.toggleM1ScriptPreview()"
+            >
+              ${choukaiState.m1ShowScriptBeforeAnswer ? "🙈 Ẩn mặt chữ xung quanh" : "👁️ Xem mặt chữ xung quanh chỗ trống"}
+            </button>
+            <button
+              type="button"
+              class="jlpt-hint-btn ${choukaiState.m1ShowHint ? "active" : ""}"
+              onclick="window.toggleM1Hint()"
+            >
+              ${choukaiState.m1ShowHint ? "🙈 Ẩn gợi ý nghĩa" : "💡 Hiện gợi ý nghĩa"}
+            </button>
+          </div>
+
+          ${
+            choukaiState.m1ShowScriptBeforeAnswer && !choukaiState.m1Answered
+              ? `<div style="margin-top:10px;font-size:17px;font-weight:700" class="jp-font">
+                  ${formatJlptSentence(q.maskedSentence)}
+                </div>`
+              : ""
+          }
+
+          ${
+            choukaiState.m1ShowHint
+              ? `<div style="margin-top:10px">
+                  <span class="jlpt-hint-badge">
+                    💡 Nghĩa từ cần nghe: <strong>${escapeHtml(q.meaning)}</strong> • Hán Việt: [${escapeHtml(q.hanViet)}]
+                  </span>
+                </div>`
+              : ""
+          }
+        </div>
+
+        <!-- ANSWER INPUT AREA (4 CHOICES OR TYPING) -->
+        ${
+          choukaiState.m1SubMode === "typing"
+            ? `
+              <div style="display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+                <input
+                  type="text"
+                  id="m1DictationInput"
+                  class="typing-input"
+                  style="max-width:380px;font-size:18px;text-align:center"
+                  placeholder="Gõ Romaji (VD: kazoku) hoặc Hiragana vừa nghe..."
+                  value="${escapeHtml(choukaiState.m1Selected)}"
+                  ${choukaiState.m1Answered ? "disabled" : ""}
+                  oninput="const v=this.value; if(/[a-zA-Z]/.test(v)){const h=romajiToHiragana(v,false); if(h!==v) this.value=h;}"
+                  onkeydown="if(event.key==='Enter') window.submitChoukaiM1Typing()"
+                />
+                ${
+                  !choukaiState.m1Answered
+                    ? `<button class="btn btn-primary" onclick="window.submitChoukaiM1Typing()">Kiểm tra đáp án</button>`
+                    : ""
+                }
+              </div>
+            `
+            : `
+              <div class="jlpt-choices-grid" style="padding-left:0;margin-bottom:16px">
+                ${q.readingOptions
+                  .map((opt, idx) => {
+                    let cls = "jlpt-choice-btn";
+                    if (choukaiState.m1Answered) {
+                      if (opt === q.reading) cls += " correct";
+                      else if (opt === choukaiState.m1Selected) cls += " wrong";
+                    }
+                    return `
+                      <button
+                        class="${cls}"
+                        ${choukaiState.m1Answered ? "disabled" : ""}
+                        onclick="window.answerChoukaiM1Choice('${escapeHtml(opt)}')"
+                      >
+                        <span class="jlpt-choice-num">${idx + 1}</span>
+                        <span class="jp-font" style="font-size:17px">${escapeHtml(opt)}</span>
+                      </button>
+                    `;
+                  })
+                  .join("")}
+              </div>
+            `
+        }
+
+        <!-- FEEDBACK & SHADOWING BOX AFTER ANSWERING -->
+        ${
+          choukaiState.m1Answered
+            ? `
+              <div class="jlpt-explain-bar ${choukaiState.m1IsCorrect ? "ok" : "err"}" style="margin-left:0;margin-top:12px">
+                <div>
+                  <div style="font-size:15px;margin-bottom:4px">
+                    ${
+                      choukaiState.m1IsCorrect
+                        ? "✅ <strong>Tai nghe rất chuẩn!</strong>"
+                        : `❌ <strong>Chưa chính xác</strong> (Bạn chọn/gõ: ${escapeHtml(choukaiState.m1Selected)})`
+                    }
+                    — Từ khóa đúng: <strong class="jp-font" style="font-size:17px">${escapeHtml(q.word)}（${escapeHtml(q.reading)}）</strong>
+                    [${escapeHtml(q.hanViet)}] = <strong>${escapeHtml(q.meaning)}</strong>
+                  </div>
+                  <div style="font-size:14px;color:var(--text-main)" class="jp-font">
+                    📜 <strong>Script cả câu:</strong> ${escapeHtml(q.fullKanjiSentence)}
+                  </div>
+                  <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+                    🗣️ <em>Mẹo luyện Kaiwa: Hãy bấm "🔊 Nghe lại" và đọc nhại theo (Shadowing) cả câu 2 lần trước khi sang câu tiếp theo!</em>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <button class="btn btn-secondary" onclick="window.playCurrentM1Audio(1.0)">
+                    🔊 Nghe chuẩn 1.0x để nhại theo
+                  </button>
+                  <button class="btn btn-primary" onclick="window.nextChoukaiM1Question()">
+                    Câu tiếp theo →
+                  </button>
+                </div>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  function renderChoukaiView() {
+    const modeCards = [
+      {
+        id: "mode1",
+        badge: "👂 Chế độ 1 • Nền tảng tai nghe",
+        title: "Nghe Bắt Từ Khóa & Chép Chính Tả",
+        desc: "Ẩn chữ Nhật, nghe câu hoàn chỉnh để bắt đúng trường âm, âm ngắt, âm đục của từ vựng N4/N5."
+      },
+      {
+        id: "mode2",
+        badge: "⚡ Chế độ 2 • JLPT Mondai 4",
+        title: "Phản Xạ Đáp Lời Kaiwa Tức Thì",
+        desc: "Nghe 1 câu giao tiếp thực tế và chọn nhanh lời đáp tự nhiên nhất trong 3 lựa chọn (即時応答)."
+      },
+      {
+        id: "mode3",
+        badge: "🎭 Chế độ 3 • JLPT Mondai 1 & 2",
+        title: "Giải Mã Hội Thoại & Bắt Bẫy Đổi Ý",
+        desc: "Nghe hội thoại Nam – Nữ theo 9 chủ đề sách, luyện bắt từ khóa bẫy (ちょっと、やっぱり、その前に)."
+      },
+      {
+        id: "mode4",
+        badge: "🗣️ Chế độ 4 • Thực chiến Kaiwa",
+        title: "Đóng Vai Kaiwa & Từ Điển Khẩu Ngữ",
+        desc: "Sổ tay rút gọn văn nói (〜ちゃう, 〜とく, 〜なきゃ), cụm từ bẫy Choukai & Luyện đóng vai A–B."
+      }
+    ];
+
+    return `
+      <div class="surface-card" style="margin-bottom:18px;border:2px solid var(--accent-indigo)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:16px">
+          <div>
+            <span class="chapter-tag" style="background:var(--accent-indigo-soft);color:var(--accent-indigo);margin-bottom:4px">
+              🎧 PHÒNG LUYỆN CHOUKAI (聴解) & PHẢN XẠ KAIWA (会話) N5–N4
+            </span>
+            <h2 style="font-size:21px;font-weight:800">
+              Luyện Tai Nghe Nhạy Bén & Phản Xạ Hội Thoại Thực Chiến
+            </h2>
+            <p style="font-size:13px;color:var(--text-secondary)">
+              Kết nối trực tiếp từ vựng trong 9 Chương <em>Kanji Master N4</em> sang âm thanh thực tế, giúp bạn nghe bắt từ tức thì và tự tin nói Kaiwa.
+            </p>
+          </div>
+
+          <!-- GLOBAL AUDIO CONTROLS: CHAPTER FILTER & SPEED -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <select
+              onchange="window.setChoukaiChapter(this.value)"
+              style="padding:7px 11px;border-radius:10px;border:1px solid var(--border-color);font-weight:700;background:var(--bg-surface);color:var(--text-main)"
+            >
+              <option value="ALL" ${choukaiState.chapterFilter === "ALL" ? "selected" : ""}>📚 Tất cả 9 Chương (N5 + N4)</option>
+              ${CHAPTERS.map(
+                (ch) =>
+                  `<option value="${ch.id}" ${String(choukaiState.chapterFilter) === String(ch.id) ? "selected" : ""}>${ch.icon} Chương ${ch.id}: ${escapeHtml(ch.titleVi)}</option>`
+              ).join("")}
+            </select>
+
+            <div class="audio-speed-bar" title="Tốc độ giọng đọc tiếng Nhật">
+              <span style="font-size:11.5px;font-weight:800;padding-left:6px;color:var(--text-muted)">Tốc độ:</span>
+              ${[
+                { r: 0.75, label: "0.75x Chậm" },
+                { r: 0.9, label: "0.9x Vừa" },
+                { r: 1.0, label: "1.0x Thi thật" },
+                { r: 1.15, label: "1.15x Nhanh" }
+              ]
+                .map(
+                  (sp) => `
+                  <button
+                    type="button"
+                    class="speed-pill ${choukaiState.speechRate === sp.r ? "active" : ""}"
+                    onclick="window.setChoukaiSpeed(${sp.r})"
+                  >
+                    ${sp.label}
+                  </button>
+                `
+                )
+                .join("")}
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 MODE SELECTOR CARDS -->
+        <div class="choukai-mode-grid">
+          ${modeCards
+            .map(
+              (mc) => `
+              <div
+                class="choukai-mode-card ${choukaiState.activeMode === mc.id ? "active" : ""}"
+                onclick="window.setChoukaiMode('${mc.id}')"
+              >
+                <span class="exam-format-badge" style="background:var(--primary-soft);color:var(--primary);align-self:flex-start">
+                  ${escapeHtml(mc.badge)}
+                </span>
+                <div style="font-size:15px;font-weight:800;color:var(--text-main)">${escapeHtml(mc.title)}</div>
+                <div style="font-size:12px;color:var(--text-secondary);line-height:1.45">${escapeHtml(mc.desc)}</div>
+              </div>
+            `
+            )
+            .join("")}
+        </div>
+      </div>
+
+      ${
+        choukaiState.activeMode === "mode1"
+          ? renderChoukaiMode1Dictation()
+          : typeof renderChoukaiOtherModes === "function"
+          ? renderChoukaiOtherModes()
+          : `<div class="surface-card">Đang tải chế độ luyện nghe...</div>`
+      }
+    `;
+  }
+
   // INTERACTIVE WRITING CANVAS
   function initWritingCanvas() {
     const canvas = document.getElementById("kanjiCanvas");
@@ -4421,6 +4955,8 @@
       mainEl.innerHTML = renderCheckpointsView();
     } else if (currentView === "custom-practice") {
       mainEl.innerHTML = renderCustomPracticeStudioView(false);
+    } else if (currentView === "choukai") {
+      mainEl.innerHTML = renderChoukaiView();
     } else if (currentView === "notebook") {
       mainEl.innerHTML = renderNotebookView();
     } else if (currentView === "dictionary") {
@@ -4440,6 +4976,10 @@
     const navCustomBtn = document.getElementById("navCustomPracticeBtn");
     if (navCustomBtn) {
       navCustomBtn.addEventListener("click", () => window.switchView("custom-practice"));
+    }
+    const navChoukaiBtn = document.getElementById("navChoukaiBtn");
+    if (navChoukaiBtn) {
+      navChoukaiBtn.addEventListener("click", () => window.switchView("choukai"));
     }
     document.getElementById("navNotebookBtn").addEventListener("click", () => window.switchView("notebook"));
     document.getElementById("navDictionaryBtn").addEventListener("click", () => window.switchView("dictionary"));
